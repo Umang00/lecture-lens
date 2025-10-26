@@ -13,6 +13,15 @@
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:headed": "playwright test --headed",
     "test:e2e:debug": "playwright test --debug",
+    "test:e2e:student": "node scripts/run-e2e-tests.js student-login",
+    "test:e2e:admin": "node scripts/run-e2e-tests.js admin-upload",
+    "test:e2e:instructor": "node scripts/run-e2e-tests.js instructor-resources",
+    "test:e2e:auth": "node scripts/run-e2e-tests.js authentication",
+    "test:e2e:mobile": "node scripts/run-e2e-tests.js mobile-responsive",
+    "test:e2e:chat": "node scripts/run-e2e-tests.js all-chat-tests",
+    "test:e2e:roles": "node scripts/run-e2e-tests.js all-role-tests",
+    "test:e2e:full": "node scripts/run-e2e-tests.js full-suite",
+    "test:setup": "node scripts/setup-test-data.js",
     "seed": "tsx scripts/seed-data.ts"
   },
   "dependencies": {
