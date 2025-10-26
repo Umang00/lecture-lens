@@ -70,6 +70,13 @@ export async function GET(
     }
 
     // 4. Verify user has access to this lecture's cohort
+    if (!user) {
+      return NextResponse.json(
+        { error: 'User not found' },
+        { status: 401 }
+      );
+    }
+
     const { data: userCohorts, error: cohortError } = await supabaseAdmin
       .from('user_cohorts')
       .select('cohort_id')

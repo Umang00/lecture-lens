@@ -55,7 +55,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         { 
           error: 'Invalid request data',
-          details: validation.error.errors
+          details: validation.error.issues
         },
         { status: 400 }
       );
@@ -84,6 +84,13 @@ export async function POST(req: NextRequest) {
     }
 
     // 5. Verify user has access to cohort
+    if (!user) {
+      return NextResponse.json(
+        { error: 'User not found' },
+        { status: 401 }
+      );
+    }
+
     const { data: userCohorts, error: cohortError } = await supabaseAdmin
       .from('user_cohorts')
       .select('cohort_id')

@@ -58,7 +58,6 @@ export async function processVTTFile(
     console.log('🔮 Step 3: Generating embeddings...');
     const embeddedChunks = await generateEmbeddingsBatch(
       chunks,
-      10, // batch size
       (completed, total) => {
         const progress = 40 + (completed / total) * 30; // 40-70% range
         updateProcessingProgress(lectureId, 'embedding', Math.round(progress));
@@ -73,6 +72,10 @@ export async function processVTTFile(
     
     // Step 4: Store chunks in database
     console.log('💾 Step 4: Storing chunks in database...');
+    
+    // Get cohort_id once for all chunks
+    const cohortId = await getCohortId(lectureId);
+    
     const chunkInserts = embeddedChunks.map(({ chunk, embedding }) => ({
       lecture_id: lectureId,
       text: chunk.text,
@@ -87,7 +90,7 @@ export async function processVTTFile(
         instructor: extractInstructor(parseResult.segments)
       },
       type: 'lecture',
-      cohort_id: await getCohortId(lectureId)
+      cohort_id: cohortId
     }));
     
     // Insert chunks in batches to avoid overwhelming the database

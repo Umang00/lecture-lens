@@ -65,6 +65,15 @@ export function truncateToTokenLimit(text: string, maxTokens: number): string {
 }
 
 /**
+ * Counts tokens in text (alias for estimateTokenCount for consistency)
+ * @param text Text to count tokens for
+ * @returns Token count
+ */
+export function countTokensInText(text: string): number {
+  return estimateTokenCount(text);
+}
+
+/**
  * Splits text into chunks that fit within token limits
  * @param text Text to split
  * @param maxTokensPerChunk Maximum tokens per chunk

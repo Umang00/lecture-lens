@@ -46,7 +46,7 @@ export async function authenticate(
     }
 
     const cohortIds = userCohorts.map((uc) => uc.cohort_id);
-    const roles = [...new Set(userCohorts.map((uc) => uc.role))];
+    const roles = Array.from(new Set(userCohorts.map((uc) => uc.role)));
 
     return {
       user: {

@@ -5,7 +5,8 @@
 
 import { readFileSync } from 'fs';
 import { join } from 'path';
-import { FormData } from 'form-data';
+// Note: FormData is available globally in Node.js 18+
+// No need to import it
 
 async function main() {
   console.log('🧪 Testing VTT Upload API with Sample Files\n');
@@ -27,10 +28,8 @@ async function main() {
 
   // Create form data for upload
   const formData = new FormData();
-  formData.append('vtt', vttContent, {
-    filename: 'sample-lecture.vtt',
-    contentType: 'text/vtt'
-  });
+  const vttBlob = new Blob([vttContent], { type: 'text/vtt' });
+  formData.append('vtt', vttBlob, 'sample-lecture.vtt');
   formData.append('cohortId', 'test-cohort-id'); // You'll need to replace with real cohort ID
   formData.append('moduleId', 'test-module-id'); // You'll need to replace with real module ID
   formData.append('title', 'Test Docker Lecture');
