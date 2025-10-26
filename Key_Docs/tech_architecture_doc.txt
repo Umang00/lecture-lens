@@ -1,0 +1,1039 @@
+# Technical Architecture Document
+## Cohort Lecture Assistant
+
+**Version:** 2.0 (REVISED)  
+**Last Updated:** January 2025  
+**Architecture Type:** Modular Monolith  
+**Deployment:** Serverless (Vercel)
+
+---
+
+## Table of Contents
+1. [System Overview](#system-overview)
+2. [Tech Stack Decisions](#tech-stack-decisions)
+3. [Data Architecture](#data-architecture)
+4. [Processing Pipelines](#processing-pipelines)
+5. [RAG Architecture](#rag-architecture)
+6. [Security & Authentication](#security--authentication)
+7. [Performance Strategy](#performance-strategy)
+8. [Scalability & Constraints](#scalability--constraints)
+
+---
+
+## System Overview
+
+### High-Level Architecture
+
+```mermaid
+graph TB
+    subgraph "Client Layer"
+        A[Web Browser] --> B[Next.js React UI]
+    end
+    
+    subgraph "Application Layer - Vercel Serverless"
+        B --> C[API Routes]
+        C --> D[VTT Processor Module]
+        C --> E[RAG Query Engine]
+        C --> F[Resource Scraper Module]
+        C --> G[Auth Middleware]
+    end
+    
+    subgraph "Data Layer - Supabase"
+        D --> H[(PostgreSQL + pgvector)]
+        E --> H
+        F --> H
+        G --> I[Supabase Auth]
+        D --> J[Supabase Storage]
+        F --> J
+    end
+    
+    subgraph "External Services"
+        E --> K[OpenRouter API<br/>Gemini + OpenAI Embeddings]
+        F --> L[GitHub API]
+        F --> M[YouTube API]
+        F --> N[Web Scraping<br/>Cheerio/Playwright]
+    end
+```
+
+### Architecture Philosophy
+
+**1. Modular Monolith (Not Microservices)**
+- **Why:** Single developer, 20-hour timeline, simpler deployment
+- **Benefit:** Clear module boundaries but one deployment unit
+- **Future:** Easy to extract modules to services later if needed
+
+**2. Serverless-First**
+- **Why:** Vercel handles scaling, no server management
+- **Constraint:** 10-second function timeout (hobby plan)
+- **Strategy:** Batch processing with progress tracking
+
+**3. Database as Source of Truth**
+- **Why:** Supabase provides DB + Auth + Storage + Vector search in one
+- **Benefit:** No data synchronization between services
+- **Trade-off:** Single point of failure (mitigated by Supabase SLA)
+
+**4. Library-First Development**
+- **Why:** Faster development, battle-tested code
+- **Examples:** LlamaIndex for RAG, Octokit for GitHub, webvtt-parser for VTT
+- **Rule:** Only write custom code when no good library exists
+
+---
+
+## Tech Stack Decisions
+
+### Frontend
+
+**Framework: Next.js 14 (App Router)**
+- **Why Chosen:**
+  - Server components reduce client bundle
+  - Built-in API routes (no separate backend)
+  - Optimal performance (automatic code splitting)
+  - Vercel deployment optimized
+- **Alternative Considered:** Plain React + Express
+- **Why Not:** More setup, separate deployments, slower
+
+**UI Library: React 18 + Tailwind CSS + shadcn/ui**
+- **Why Chosen:**
+  - Tailwind: Utility-first, fast styling
+  - shadcn: Pre-built accessible components
+  - No runtime CSS-in-JS (better performance)
+- **Alternative Considered:** Material UI, Chakra UI
+- **Why Not:** Larger bundle size, opinionated styling
+
+**State Management: React Hooks (useState, useContext)**
+- **Why Chosen:**
+  - Simple, built-in, no extra dependencies
+  - Sufficient for MVP (no complex global state)
+- **Alternative Considered:** Redux, Zustand
+- **Why Not:** Overkill for chat interface + auth state
+
+### Backend
+
+**Runtime: Node.js 20 (Vercel Serverless Functions)**
+- **Why Chosen:**
+  - JavaScript everywhere (shared types)
+  - Mature ecosystem for all integrations
+  - Vercel optimized for Node.js
+- **Constraint:** 10-second timeout (hobby plan)
+- **Workaround:** Batch processing with status polling
+
+**API Framework: Next.js API Routes**
+- **Why Chosen:**
+  - Integrated with frontend (same repo)
+  - Automatic serverless deployment
+  - TypeScript support out-of-box
+- **Pattern:** `/app/api/[resource]/route.ts`
+
+**Language: TypeScript**
+- **Why Chosen:**
+  - Type safety prevents bugs
+  - Better IDE support (autocomplete)
+  - Shared types between frontend/backend
+- **Configuration:** Strict mode enabled
+
+### Database
+
+**Primary DB: Supabase (PostgreSQL 15)**
+- **Why Chosen:**
+  - Free tier: 500MB DB, 1GB storage, 2GB bandwidth
+  - Built-in Auth (no separate service)
+  - pgvector extension (native vector search)
+  - RLS policies (row-level security)
+- **Alternative Considered:** Firebase, MongoDB, Pinecone
+- **Why Not:** 
+  - Firebase: No vector search
+  - MongoDB: Weaker vector support
+  - Pinecone: Separate service, costs money
+
+**Vector Extension: pgvector**
+- **Why Chosen:**
+  - Co-located with data (no sync issues)
+  - SQL queries (familiar, powerful)
+  - IVFFlat index (fast similarity search)
+- **Alternative Considered:** Dedicated vector DBs (Qdrant, Weaviate)
+- **Why Not:** Extra service to manage, costs
+
+**File Storage: Supabase Storage**
+- **Why Chosen:**
+  - Integrated with DB (same auth)
+  - CDN included
+  - Direct uploads from browser
+- **Use Cases:** VTT files, future: PDFs, images
+
+### AI/ML Stack
+
+**LLM Router: OpenRouter**
+- **Why Chosen:**
+  - Multi-model support (switch without code changes)
+  - Pay-per-use ($5 free credits)
+  - Unified API (works with Gemini, Claude, GPT)
+- **Primary Model:** google/gemini-2.0-flash-exp:free
+- **Fallback:** anthropic/claude-3.5-haiku (if rate limited)
+
+**Embeddings: OpenAI text-embedding-3-small (via OpenRouter)**
+- **Why Chosen:**
+  - Industry standard (1536 dimensions)
+  - High quality semantic matching
+  - Affordable ($0.02 per 1M tokens)
+- **Alternative Considered:** Sentence transformers (local)
+- **Why Not:** Lower quality, need GPU for speed
+
+**RAG Framework: LlamaIndex**
+- **Why Chosen:**
+  - Better for document retrieval than LangChain
+  - Simpler API for indexing + querying
+  - Native Supabase vector store integration
+- **Alternative Considered:** LangChain, custom RAG
+- **Why Not:**
+  - LangChain: More complex, agent-focused
+  - Custom: Time-consuming, reinventing wheel
+
+### Infrastructure
+
+**Hosting: Vercel**
+- **Plan:** Hobby (free)
+- **Limits:** 12 serverless functions, 10s timeout
+- **Why Chosen:**
+  - Zero-config Next.js deployment
+  - Git-based CI/CD (push to deploy)
+  - Edge network (fast globally)
+
+**CI/CD: Vercel Git Integration**
+- **Trigger:** Push to main branch
+- **Process:** Build → Test → Deploy
+- **Rollback:** One-click via dashboard
+
+**Monitoring: Vercel Analytics**
+- **Metrics:** Function invocations, errors, performance
+- **Logs:** Real-time function logs
+- **Alerts:** Email on high error rate (post-MVP)
+
+---
+
+## Data Architecture
+
+### Unified Knowledge Base Design
+
+**Core Principle:** All content (lectures + resources) in ONE searchable index.
+
+**Knowledge Chunk Structure:**
+```
+knowledge_chunks table
+├── id (uuid, primary key)
+├── type (enum: 'lecture' | 'resource')
+├── lecture_id (nullable, FK to lectures)
+├── resource_id (nullable, FK to resources)
+├── text (actual content, 300-800 tokens)
+├── embedding (vector(1536) for similarity search)
+├── metadata (jsonb, flexible storage)
+│   ├── For lectures:
+│   │   ├── timestamp (start time of chunk)
+│   │   ├── lectureTitle
+│   │   ├── instructor
+│   │   ├── lectureDate
+│   │   └── moduleNumber
+│   └── For resources:
+│       ├── resourceType (github/youtube/blog)
+│       ├── resourceUrl
+│       ├── mentionedInLecture (lecture ID)
+│       └── chunkIndex
+├── cohort_id (for RLS isolation)
+├── chunk_index (position in document)
+└── created_at (timestamp)
+```
+
+**Benefits:**
+- Single vector search query across all content
+- Unified ranking (lectures + resources together)
+- Simpler than separate indexes
+- Easier to add new content types later
+
+### Database Schema Overview
+
+```mermaid
+erDiagram
+    cohorts ||--o{ user_cohorts : contains
+    cohorts ||--o{ modules : contains
+    modules ||--o{ lectures : contains
+    lectures ||--o{ knowledge_chunks : "chunks into"
+    lectures ||--o{ lecture_resources : mentions
+    resources ||--o{ lecture_resources : "mentioned in"
+    resources ||--o{ knowledge_chunks : "chunks into"
+    users ||--o{ user_cohorts : "belongs to"
+    
+    cohorts {
+        uuid id PK
+        text name
+        date start_date
+    }
+    
+    modules {
+        uuid id PK
+        uuid cohort_id FK
+        text name
+        int sequence
+    }
+    
+    lectures {
+        uuid id PK
+        uuid module_id FK
+        text title
+        text instructor
+        date lecture_date
+        int duration_mins
+        text vtt_file_url
+        jsonb summary
+        text[] key_topics
+        boolean processed
+    }
+    
+    resources {
+        uuid id PK
+        text url
+        text type
+        text title
+        text summary
+        text content
+        jsonb metadata
+        boolean is_global
+    }
+    
+    lecture_resources {
+        uuid lecture_id FK
+        uuid resource_id FK
+        text mention_context
+    }
+    
+    knowledge_chunks {
+        uuid id PK
+        text type
+        uuid lecture_id FK
+        uuid resource_id FK
+        text text
+        vector embedding
+        jsonb metadata
+        uuid cohort_id FK
+        int chunk_index
+    }
+    
+    user_cohorts {
+        uuid user_id FK
+        uuid cohort_id FK
+        text role
+    }
+```
+
+### Key Design Decisions
+
+**1. Why JSONB for metadata?**
+- Flexible: Different metadata for lectures vs. resources
+- Queryable: Can filter/search within JSONB
+- Indexable: Create GIN indexes on specific keys
+
+**2. Why separate lecture_resources table?**
+- Many-to-many: One resource can be mentioned in multiple lectures
+- Context: Store WHERE in lecture it was mentioned (timestamp)
+- History: Track when resource was added
+
+**3. Why unified knowledge_chunks?**
+- Single vector search: No need to query multiple tables
+- Unified ranking: Compare lectures vs. resources fairly
+- Simpler queries: One query returns all relevant content
+
+---
+
+## Processing Pipelines
+
+### Pipeline 1: VTT Lecture Processing
+
+```mermaid
+sequenceDiagram
+    participant Admin
+    participant API
+    participant Storage
+    participant Parser
+    participant Chunker
+    participant Embedder
+    participant Summarizer
+    participant DB
+
+    Admin->>API: Upload VTT + metadata
+    API->>Storage: Store VTT file
+    Storage-->>API: File URL
+    
+    API->>Parser: Parse VTT content
+    Parser->>Parser: Detect & skip intro (5-10 mins)
+    Parser-->>API: Clean VTT segments
+    
+    API->>Chunker: Semantic chunking
+    Note over Chunker: 300-800 tokens<br/>50 token overlap<br/>Respect boundaries
+    Chunker-->>API: 100-150 chunks
+    
+    loop Batches of 10 chunks
+        API->>Embedder: Generate embeddings
+        Embedder->>OpenRouter: Batch embed API call
+        OpenRouter-->>Embedder: 1536-dim vectors
+        Embedder->>DB: Insert chunks + embeddings
+        API->>Admin: Progress: X/Total chunks
+    end
+    
+    API->>Summarizer: Generate comprehensive summary
+    Summarizer->>OpenRouter: LLM completion
+    Note over Summarizer: Extract topics<br/>Timestamped sections<br/>Tools mentioned<br/>Key takeaways
+    OpenRouter-->>Summarizer: Rich summary JSON
+    Summarizer->>DB: Update lecture.summary
+    
+    DB-->>API: Processing complete
+    API-->>Admin: Redirect to lecture summary
+```
+
+**Key Points:**
+- **Intro Detection:** Analyze first 10-15 segments for lecture-start keywords
+- **Semantic Chunking:** Use sentence boundaries, overlap prevents context loss
+- **Batching:** Respect OpenRouter rate limits (15 RPM)
+- **Progress Tracking:** Update DB after each batch for UI polling
+
+### Pipeline 2: Resource Auto-Scraping
+
+```mermaid
+sequenceDiagram
+    participant Instructor
+    participant API
+    participant Validator
+    participant Scraper
+    participant Chunker
+    participant Embedder
+    participant Summarizer
+    participant DB
+
+    Instructor->>API: Add resource URL + type
+    API->>Validator: Validate URL format
+    Validator-->>API: Valid/Invalid
+    
+    alt Invalid URL
+        API-->>Instructor: Error: Invalid URL for type
+    end
+    
+    API->>Scraper: Scrape content
+    
+    alt GitHub
+        Scraper->>GitHub API: Fetch README
+        GitHub API-->>Scraper: Markdown content
+    else YouTube
+        Scraper->>YouTube API: Get transcript
+        YouTube API-->>Scraper: Subtitle text
+    else Blog
+        Scraper->>Web: HTTP GET
+        Scraper->>Scraper: Extract article (Cheerio)
+        Scraper-->>Scraper: Clean HTML
+    end
+    
+    Scraper-->>API: Raw content
+    
+    API->>Chunker: Chunk content (no timestamps)
+    Chunker-->>API: Chunks
+    
+    API->>Embedder: Generate embeddings
+    Embedder->>OpenRouter: Batch embed
+    OpenRouter-->>Embedder: Vectors
+    
+    API->>Summarizer: Auto-generate summary
+    Summarizer->>OpenRouter: LLM completion
+    OpenRouter-->>Summarizer: 3-5 sentence summary
+    
+    API->>DB: Insert resource + chunks
+    DB-->>API: Resource ID
+    API->>DB: Link to lecture (if specified)
+    
+    API-->>Instructor: Resource added successfully
+```
+
+**Key Points:**
+- **Type-Specific Scrapers:** GitHub (API), YouTube (API/yt-dlp), Blogs (Cheerio/Playwright)
+- **Error Handling:** Graceful failures (log error, allow manual content paste)
+- **Auto-Summary:** LLM generates 3-5 sentences (no manual input)
+- **Immediate Indexing:** Searchable as soon as processing completes
+
+---
+
+## RAG Architecture
+
+### Query Flow (End-to-End)
+
+```mermaid
+graph TD
+    A[User Query + Chat History] --> B[Generate Query Embedding]
+    B --> C[Vector Similarity Search<br/>Top 20 candidates]
+    C --> D{Hybrid Reranking}
+    D --> E[Top 5 Sources]
+    E --> F[Build Context Prompt<br/>+ Conversation History]
+    F --> G[LLM Generate Answer]
+    G --> H[Format with Citations]
+    H --> I[Return to User + Update History]
+    
+    D -->|Factors| J[Similarity Score]
+    D -->|Factors| K[Recency Boost]
+    D -->|Factors| L[Title/Metadata Match]
+    D -->|Factors| M[Resource Type<br/>Relevance]
+```
+
+### Chat History & Context Management
+
+**Purpose:** Maintain conversation context for follow-up questions.
+
+**Storage:** React state (session-only for MVP)
+```
+interface Message {
+  role: 'user' | 'assistant'
+  content: string
+  sources?: Source[]
+  timestamp: Date
+}
+
+// Store last 10 messages
+const [messages, setMessages] = useState<Message[]>([])
+```
+
+**Context Passing:**
+```
+Frontend:
+- Maintains message array in state
+- Passes last 5-10 messages to API
+
+API:
+- Receives current query + recent messages
+- Builds context: "Previous: [User asked about Docker], [Bot explained...], Now: [volumes question]"
+- LLM understands "volumes" refers to Docker volumes
+
+Example:
+User: "How does Docker work?"
+Bot: "Docker is a containerization platform..."
+
+User: "What about volumes?" ← No explicit "Docker" mention
+Bot: "Docker volumes persist data..." ← Understands context
+```
+
+**Frontend Implementation:**
+```
+// components/chat-interface.tsx
+const sendMessage = async (query: string) => {
+  const context = messages.slice(-10) // Last 10 messages
+  
+  const response = await fetch('/api/query', {
+    method: 'POST',
+    body: JSON.stringify({ 
+      query, 
+      context: context.map(m => ({ role: m.role, content: m.content }))
+    })
+  })
+  
+  setMessages(prev => [
+    ...prev, 
+    { role: 'user', content: query },
+    { role: 'assistant', content: response.answer, sources: response.sources }
+  ])
+}
+```
+
+**Backend Context Integration:**
+```
+// app/api/query/route.ts
+export async function POST(req: Request) {
+  const { query, context } = await req.json()
+  
+  // Build conversation history for LLM
+  const conversationContext = context?.map(m => 
+    `${m.role === 'user' ? 'User' : 'Assistant'}: ${m.content}`
+  ).join('\n\n') || ''
+  
+  // Include in prompt
+  const prompt = `
+Conversation History:
+${conversationContext}
+
+Current Question: ${query}
+
+[Rest of prompt with sources...]
+  `
+}
+```
+
+### Chunking Strategy (Critical for Quality)
+
+**Goal:** Preserve context without splitting concepts mid-sentence.
+
+**Parameters:**
+- **Min Chunk Size:** 300 tokens (~225 words)
+- **Max Chunk Size:** 800 tokens (~600 words)
+- **Overlap:** 50 tokens between consecutive chunks
+- **Boundaries:** Respect sentence endings (. ? !), paragraph breaks (\n\n)
+
+**Algorithm:**
+1. Start with empty chunk
+2. Add VTT segments one-by-one
+3. When approaching max size, look for natural boundary
+4. Split at boundary (prefer paragraph > sentence > hard split)
+5. Include 50-token overlap from previous chunk in next chunk
+6. Preserve timestamp metadata for each chunk
+
+**Example:**
+```
+Chunk 1: [00:15:30 - 00:18:45]
+"Docker volumes allow data persistence outside container 
+filesystem. When you create a volume, Docker manages it in 
+/var/lib/docker/volumes. Volumes survive container restarts."
+
+Chunk 2: [00:18:30 - 00:22:10] 
+"Volumes survive container restarts. The -v flag mounts volumes 
+into containers. You can also use docker-compose for declarative 
+volume management..."
+(Note: "Volumes survive container restarts" is overlap)
+```
+
+**Benefits:**
+- No mid-concept splits
+- Context preserved via overlap
+- Timestamps accurate to chunk content
+- Better retrieval quality
+
+### Hybrid Ranking Strategy
+
+**Phase 1: Vector Similarity (Primary)**
+- Cosine similarity between query embedding and chunk embeddings
+- Returns top 20 candidates (over-retrieve for reranking)
+
+**Phase 2: Reranking (Boost/Penalty)**
+
+Adjust scores based on:
+
+1. **Recency Boost:** Newer lectures ranked higher
+   - Lectures < 30 days old: +10% score
+   - Rationale: Recent content likely more relevant
+
+2. **Title Match Boost:** If query keywords match lecture/resource title
+   - Example: Query "Docker networking" + Lecture title "Docker Networking Deep Dive"
+   - Boost: +5% per matching word in title
+   - Rationale: Title is best indicator of content relevance
+
+3. **Instructor Name Match:** If query mentions instructor
+   - Example: "What did Siddhanth say about Docker?"
+   - Boost chunks from Siddhanth's lectures: +15%
+
+4. **Code Presence Boost:** For technical queries
+   - If chunk contains code patterns (```, docker, npm, etc.)
+   - And query is technical: +8%
+
+5. **Resource Type Relevance:**
+   - Query contains "docs/documentation" → Boost blog/docs resources: +12%
+   - Query contains "example/demo" → Boost GitHub repos: +12%
+   - Query contains "video/watch" → Boost YouTube resources: +12%
+
+6. **Lecture vs. Resource Balance:**
+   - Ensure top 5 includes mix (at least 1 resource if relevant)
+   - Prevents lecture-only or resource-only results
+
+**Phase 3: Top-K Selection**
+- Return top 5 sources after reranking
+- Used to build LLM context
+
+### Summary Generation Strategy
+
+**Goal:** Comprehensive summaries that capture full lecture, not just highlights.
+
+**Structure:**
+```
+Executive Overview (3-5 sentences)
+↓
+Section 1: [Topic Title] (Timestamp Range)
+  ├── Key Concepts (with explanations)
+  ├── Technical Details (steps, code, config)
+  ├── Tools Mentioned (with timestamps)
+  └── Important Notes (pitfalls, best practices)
+↓
+Section 2: [Next Topic] (Timestamp Range)
+  └── [Same structure]
+↓
+Demonstrations (with timestamps + durations)
+↓
+Resources Shared (with mention timestamps)
+↓
+Key Takeaways (3-5 points)
+```
+
+**Generation Process:**
+1. **Topic Detection:** Analyze chunks to identify topic transitions (LLM-assisted)
+2. **Per-Section Summary:** For each topic, generate detailed breakdown
+3. **Tool Extraction:** Find all tools/frameworks mentioned with first occurrence timestamp
+4. **Resource Extraction:** Parse transcript for URLs, references (e.g., "check the Docker docs")
+5. **Takeaways:** Synthesize 3-5 most important learnings
+
+**Prompt Strategy:**
+- Emphasize thoroughness ("2-3 hour lecture, not 10-min talk")
+- Request timestamps for every element
+- Ask for specific examples/quotes from instructor
+- Require structured JSON output for parsing
+
+---
+
+## Security & Authentication
+
+### Authentication Flow
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant UI
+    participant Supabase Auth
+    participant API
+    participant DB
+
+    User->>UI: Enter email + password
+    UI->>Supabase Auth: Sign in
+    Supabase Auth-->>UI: JWT token + user object
+    UI->>UI: Store token in memory (not localStorage)
+    
+    User->>UI: Query lecture content
+    UI->>API: POST /api/query<br/>Authorization: Bearer {token}
+    API->>Supabase Auth: Verify token
+    Supabase Auth-->>API: User object
+    
+    API->>DB: Get user's cohort
+    DB-->>API: cohort_id
+    
+    API->>DB: Search knowledge_chunks<br/>WHERE cohort_id = ?
+    Note over DB: RLS policies enforce<br/>additional filtering
+    DB-->>API: Results (only user's cohort)
+    
+    API-->>UI: Answer + sources
+    UI-->>User: Display response
+```
+
+### Row-Level Security (RLS)
+
+**Principle:** Database enforces access control, not application code.
+
+**Policies:**
+
+**1. Cohort Isolation for Students**
+```
+Users can only SELECT knowledge_chunks where:
+- cohort_id matches a cohort they belong to (via user_cohorts table)
+```
+
+**2. Instructor Multi-Cohort Access**
+```
+Users with role='instructor' can SELECT knowledge_chunks where:
+- cohort_id matches ANY cohort they teach
+```
+
+**3. Admin Full Access**
+```
+Users with role='admin' can SELECT all knowledge_chunks
+```
+
+**4. Upload Permissions**
+```
+Only users with role IN ('admin', 'instructor') can INSERT lectures/resources
+```
+
+**Benefits:**
+- Security at DB level (can't bypass via API)
+- Automatic filtering (no manual WHERE clauses)
+- Prevents accidental data leaks
+
+### API Security
+
+**Authentication Middleware:**
+- Extract JWT from Authorization header
+- Verify token with Supabase Auth
+- Attach user object to request
+- Reject if invalid/expired
+
+**Input Validation:**
+- All API inputs validated with Zod schemas
+- Sanitize user queries (prevent injection)
+- File uploads: Check MIME type, file size limits
+
+**Rate Limiting (Post-MVP):**
+- Per-user: 100 queries/hour
+- Per-IP: 1000 requests/hour
+- Prevents abuse, protects OpenRouter quota
+
+---
+
+## Performance Strategy
+
+### Caching Layers
+
+**1. Query Result Caching (Post-MVP)**
+- Cache common queries (e.g., "How do Docker volumes work?")
+- TTL: 1 hour
+- Storage: Redis (Upstash free tier)
+- Invalidation: On new lecture upload
+
+**2. Embedding Caching**
+- Cache all generated embeddings in DB
+- Never regenerate for same content
+- Reuse if chunk text unchanged
+
+**3. Summary Caching**
+- Store generated summaries in lectures table
+- Regenerate only if instructor requests
+
+**4. Static Asset Caching**
+- VTT files served via Supabase CDN
+- Cache-Control headers: 1 year
+- Immutable after upload
+
+### Database Optimization
+
+**Indexes:**
+```
+1. Vector Index (IVFFlat):
+   - On knowledge_chunks.embedding
+   - Lists: 100 (adjust based on total chunks)
+   - Speeds up similarity search
+
+2. Cohort Filter Index:
+   - On knowledge_chunks(cohort_id, type)
+   - Composite index for common filter
+
+3. Lecture Lookup Index:
+   - On lectures(module_id, lecture_date DESC)
+   - For lecture list queries
+
+4. User Cohort Index:
+   - On user_cohorts(user_id, cohort_id)
+   - For RLS policy checks
+```
+
+**Query Optimization:**
+- Use prepared statements (prevent SQL injection + faster)
+- Limit result sets (pagination for large lists)
+- Avoid N+1 queries (use JOINs or batch fetches)
+
+### Embedding Generation Optimization
+
+**Batching Strategy:**
+- Process 10 chunks per API call (OpenRouter supports batch)
+- Wait 4 seconds between batches (15 RPM limit)
+- For 150 chunks: 15 batches × 4s = 60 seconds total
+
+**Parallel Processing (Where Possible):**
+- Summary generation + embedding generation can run in parallel
+- Use Promise.all() for concurrent API calls
+- Respects individual rate limits
+
+---
+
+## Scalability & Constraints
+
+### Current Limits (MVP - Free Tiers)
+
+| Service | Limit | Impact | Workaround |
+|---------|-------|--------|------------|
+| Vercel Functions | 12 max | Must consolidate endpoints | Combine related operations |
+| Vercel Timeout | 10 seconds | Can't process long lectures in one call | Batch with status polling |
+| Supabase DB | 500MB | ~50k chunks | Optimize chunk size, cleanup old data |
+| Supabase Storage | 1GB | ~200 VTT files | Sufficient for MVP |
+| OpenRouter Free | $5 credit | ~500k tokens | Pre-generate embeddings before demo |
+
+### Scaling Path (Beyond MVP)
+
+**Month 1-2: Optimize Free Tiers**
+- Add Redis caching (Upstash free tier: 10k commands/day)
+- Implement query result caching
+- Optimize vector indexes
+- Reduce embedding dimensions (1536 → 768 if needed)
+
+**Month 3+: Paid Tiers**
+- Vercel Pro ($20/mo): Unlimited functions, longer timeouts
+- Supabase Pro ($25/mo): 8GB DB, 100GB bandwidth
+- OpenRouter pay-as-you-go (~$50-100/mo for 1000 users)
+- Total: ~$100/mo for 1000+ users
+
+**Month 6+: Architecture Changes (If Needed)**
+- Extract RAG engine to separate service (Fly.io/Railway)
+- Add message queue (BullMQ + Redis) for async processing
+- Implement response streaming (reduce perceived latency)
+- Horizontal scaling with load balancer
+
+### Performance Targets
+
+| Metric | Target | Current (Estimate) | Optimization |
+|--------|--------|-------------------|--------------|
+| Query Latency (p95) | < 5s | 3-4s | ✅ Meeting target |
+| VTT Processing | < 3 min | 2-2.5 min | ✅ Meeting target |
+| Resource Scraping | < 2 min | 1-3 min | ⚠️ Varies by source |
+| Page Load (LCP) | < 2s | 1.5s | ✅ Meeting target |
+| Embedding Generation | < 1 min/100 chunks | 60s | ✅ At limit |
+
+---
+
+## Monitoring & Observability
+
+### Key Metrics to Track
+
+**1. Query Performance**
+- Latency (p50, p95, p99)
+- Success rate (%)
+- Cache hit rate (post-MVP)
+- Top 10 queries (identify patterns)
+
+**2. Processing Performance**
+- VTT parse time
+- Embedding generation time
+- Summary generation time
+- Scraping success rate
+
+**3. User Engagement**
+- Queries per user per day
+- Timestamp click-through rate
+- Resource access rate
+- Session duration
+
+**4. System Health**
+- API error rate by endpoint
+- OpenRouter quota remaining
+- Database storage usage
+- Function invocation count (Vercel limit)
+
+### Logging Strategy
+
+**Log Levels:**
+- ERROR: Failed operations (scraping, processing, queries)
+- WARN: Rate limits approaching, slow queries
+- INFO: Successful operations, user actions
+- DEBUG: Detailed execution flow (dev only)
+
+**Structured Logging:**
+```
+{
+  timestamp: "2025-01-15T10:30:00Z",
+  level: "ERROR",
+  service: "resource-scraper",
+  operation: "scrape-github",
+  url: "https://github.com/...",
+  error: "API rate limit exceeded",
+  userId: "user-123",
+  cohortId: "cohort-5"
+}
+```
+
+**Log Storage:**
+- Vercel Logs (searchable, 7-day retention)
+- External logging (Sentry) for errors (post-MVP)
+
+---
+
+## Deployment Architecture
+
+### Vercel Edge Network
+
+```
+User Request (Mumbai, India)
+        ↓
+Cloudflare DNS Resolution
+        ↓
+Vercel Edge (Mumbai Region)
+        ↓
+Next.js Server Component Render
+        ↓
+API Route Execution (us-east-1)
+        ↓
+Supabase (us-east-1)
+        ↓
+OpenRouter API (us-west-2)
+```
+
+**Latency Breakdown:**
+- Edge routing: 10-20ms
+- Server render: 100-200ms
+- API execution: 200-500ms
+- DB query: 50-100ms
+- LLM generation: 1500-2500ms
+- **Total:** 2-3 seconds (within 5s target)
+
+### CI/CD Pipeline
+
+```
+git push to main
+     ↓
+Vercel detects commit
+     ↓
+Run build:
+  - npm install
+  - npm run build
+  - Generate types from Supabase schema
+     ↓
+Run tests (if configured):
+  - Unit tests (Vitest)
+  - Integration tests
+     ↓
+Deploy to production:
+  - Upload to Vercel edge
+  - Update DNS
+  - Rollout (gradual, 0% → 100% over 5 mins)
+     ↓
+Monitor for errors (1 hour)
+     ↓
+If error rate > 5%: Auto-rollback to previous version
+```
+
+**Zero-Downtime Deployment:**
+- Vercel maintains previous version during rollout
+- Automatic rollback if health checks fail
+- Manual rollback available (one-click in dashboard)
+
+---
+
+## Technology Selection Rationale
+
+### Why These Choices?
+
+**Next.js over Remix/SvelteKit:**
+- Larger ecosystem, more resources
+- Vercel optimization
+- Server components (better performance)
+
+**Supabase over Firebase:**
+- PostgreSQL (more powerful queries)
+- pgvector (native vector search)
+- Open source (can self-host later)
+
+**LlamaIndex over LangChain:**
+- Simpler API for RAG use case
+- Better documentation for indexing
+- Less opinionated (easier customization)
+
+**OpenRouter over Direct APIs:**
+- Multi-model flexibility (no vendor lock-in)
+- Fallback models if primary fails
+- Pay-per-use (vs. subscriptions)
+
+**TypeScript over JavaScript:**
+- Catches bugs at compile time
+- Better refactoring support
+- Shared types between layers
+
+---
+
+## Appendix: Architecture Diagrams Legend
+
+**Mermaid Diagram Components:**
+- **Rectangle:** Service/Component
+- **Cylinder:** Database/Storage
+- **Arrow:** Data flow direction
+- **Diamond:** Decision point
+- **Dashed line:** Async/background process
+
+**Color Coding:**
+- Blue: Application layer
+- Green: Data layer
+- Orange: External services
+- Red: Error paths
+
+---
+
+**Document Status:** ✅ Architecture Approved  
+**Next Steps:** Database schema design → Implementation planning

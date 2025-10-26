@@ -1,0 +1,143 @@
+// scraper-boilerplate.ts
+import { v4 as uuidv4 } from "uuid";
+import type { ContentItem } from "@creatorpulse/shared";
+import { withExponentialBackoff, nowUtcIso } from "@creatorpulse/shared";
+import type { IngestionAdapter, SourceConfig } from "./types";
+import { registerAdapter } from "./registry";
+
+// 1. Define your adapter interface
+export const yourAdapter: IngestionAdapter = {
+  name: "your-source-name", // e.g., "hackernews", "devto", "medium"
+  
+  // 2. Health check method
+  async health() {
+    return { ok: true };
+  },
+  
+  // 3. Main fetch method - this is where the magic happens
+  async fetchSince(sinceIsoUtc: string, config: SourceConfig): Promise<ContentItem[]> {
+    try {
+      // 4. Parse/validate the source URL
+      const parsedUrl = this.parseSourceUrl(config.url);
+      
+      // 5. Fetch data with retry logic
+      const rawData = await withExponentialBackoff(
+        () => this.fetchFromSource(parsedUrl, sinceIsoUtc),
+        {
+          minDelayMs: 1000,
+          maxDelayMs: 10000,
+          factor: 2,
+          retries: 3
+        }
+      );
+      
+      // 6. Filter by date
+      const since = new Date(sinceIsoUtc).valueOf();
+      
+      return rawData
+        .filter(item => {
+          const itemDate = new Date(item.publishedAt || item.date || '').valueOf();
+          return !isNaN(itemDate) && itemDate >= since;
+        })
+        .map(item => ({
+          id: uuidv4(),
+          sourceId: config.id,
+          url: item.url || item.link || '',
+          title: item.title || item.headline || '',
+          author: item.author || item.creator || null,
+          publishedAt: new Date(item.publishedAt || item.date || new Date()).toISOString(),
+          rawText: item.content || item.description || item.summary || '',
+          tags: item.tags || item.categories || [],
+          metadata: { 
+            kind: 'your-source-name',
+            sourceName: config.name,
+            // Add any platform-specific metadata
+            score: item.score,
+            comments: item.comments,
+            views: item.views,
+            // ... other platform-specific fields
+          }
+        }));
+    } catch (error) {
+      console.error('Your source API error:', error);
+      // Return empty array on error to prevent pipeline failure
+      return [];
+    }
+  },
+  
+  // 7. Helper methods for URL parsing and data fetching
+  parseSourceUrl(url: string): ParsedUrl {
+    // Implement URL parsing logic for your platform
+    // Examples:
+    // - Extract subreddit from Reddit URLs
+    // - Extract channel ID from YouTube URLs
+    // - Extract repository from GitHub URLs
+    // - Extract username from Twitter URLs
+    
+    const patterns = [
+      // Add your URL patterns here
+      /your-pattern-here/,
+      /another-pattern/
+    ];
+    
+    for (const pattern of patterns) {
+      const match = url.match(pattern);
+      if (match) return { type: 'valid', data: match[1] };
+    }
+    
+    throw new Error(`Invalid URL format: ${url}`);
+  },
+  
+  async fetchFromSource(parsedUrl: ParsedUrl, sinceIsoUtc: string): Promise<RawItem[]> {
+    // Implement your actual API calls here
+    // Examples:
+    // - RSS: Use rss-parser
+    // - Reddit: Use snoowrap
+    // - YouTube: Use googleapis
+    // - GitHub: Use @octokit/rest
+    // - Twitter: Use Twitter API v2
+    // - Blog: Use cheerio for scraping
+    
+    const response = await fetch(`your-api-endpoint`, {
+      headers: {
+        'Authorization': `Bearer ${process.env.YOUR_API_KEY}`,
+        'User-Agent': 'Newsletter-MVP/1.0'
+      }
+    });
+    
+    if (!response.ok) {
+      throw new Error(`API request failed: ${response.status}`);
+    }
+    
+    const data = await response.json();
+    return data.items || data.posts || data.results || [];
+  }
+};
+
+// 8. Register the adapter
+registerAdapter(yourAdapter);
+
+// 9. Type definitions for your specific platform
+interface ParsedUrl {
+  type: 'valid' | 'invalid';
+  data: string;
+}
+
+interface RawItem {
+  url?: string;
+  link?: string;
+  title?: string;
+  headline?: string;
+  author?: string;
+  creator?: string;
+  publishedAt?: string;
+  date?: string;
+  content?: string;
+  description?: string;
+  summary?: string;
+  tags?: string[];
+  categories?: string[];
+  score?: number;
+  comments?: number;
+  views?: number;
+}

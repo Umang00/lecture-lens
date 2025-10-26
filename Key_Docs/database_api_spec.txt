@@ -1,0 +1,1086 @@
+# Database & API Specification
+## Cohort Lecture Assistant
+
+**Version:** 2.0  
+**Last Updated:** January 2025  
+**Database:** PostgreSQL 15 + pgvector  
+**API Style:** RESTful
+
+---
+
+## Table of Contents
+1. [Database Schema](#database-schema)
+2. [Table Specifications](#table-specifications)
+3. [Relationships & Constraints](#relationships--constraints)
+4. [Indexes & Performance](#indexes--performance)
+5. [Row-Level Security Policies](#row-level-security-policies)
+6. [API Endpoints](#api-endpoints)
+7. [Request/Response Schemas](#requestresponse-schemas)
+
+---
+
+## Database Schema
+
+### Entity Relationship Diagram
+
+```mermaid
+erDiagram
+    cohorts ||--o{ user_cohorts : "has members"
+    cohorts ||--o{ modules : "contains"
+    modules ||--o{ lectures : "contains"
+    lectures ||--o{ knowledge_chunks : "chunks into"
+    lectures ||--o{ lecture_resources : "mentions"
+    resources ||--o{ lecture_resources : "mentioned in"
+    resources ||--o{ knowledge_chunks : "chunks into"
+    auth_users ||--o{ user_cohorts : "enrolled in"
+    
+    cohorts {
+        uuid id PK
+        text name UK
+        date start_date
+        timestamptz created_at
+    }
+    
+    modules {
+        uuid id PK
+        uuid cohort_id FK
+        text name
+        int sequence
+        timestamptz created_at
+    }
+    
+    lectures {
+        uuid id PK
+        uuid module_id FK
+        text title
+        text instructor
+        date lecture_date
+        int duration_mins
+        text vtt_file_url
+        jsonb summary
+        text[] key_topics
+        boolean processed
+        int processing_progress
+        timestamptz created_at
+        timestamptz updated_at
+    }
+    
+    resources {
+        uuid id PK
+        text url UK
+        text type
+        text title
+        text summary
+        text content
+        jsonb metadata
+        boolean is_global
+        uuid created_by FK
+        timestamptz scraped_at
+        timestamptz created_at
+    }
+    
+    lecture_resources {
+        uuid lecture_id FK
+        uuid resource_id FK
+        text mention_context
+        timestamptz created_at
+    }
+    
+    knowledge_chunks {
+        uuid id PK
+        text type
+        uuid lecture_id FK
+        uuid resource_id FK
+        text text
+        vector_1536 embedding
+        jsonb metadata
+        uuid cohort_id FK
+        int chunk_index
+        int token_count
+        timestamptz created_at
+    }
+    
+    user_cohorts {
+        uuid user_id FK
+        uuid cohort_id FK
+        text role
+        timestamptz enrolled_at
+    }
+```
+
+---
+
+## Table Specifications
+
+### cohorts
+Represents a cohort (batch) of students.
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| id | uuid | PRIMARY KEY, DEFAULT uuid_generate_v4() | Unique cohort ID |
+| name | text | NOT NULL, UNIQUE | Cohort name (e.g., "Cohort 5") |
+| start_date | date | NOT NULL | When cohort started |
+| created_at | timestamptz | DEFAULT now() | Record creation timestamp |
+
+**Indexes:**
+- PRIMARY KEY on `id`
+- UNIQUE on `name`
+
+---
+
+### modules
+Represents modules within a cohort (e.g., "Intro to Python", "Docker Deep Dive").
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| id | uuid | PRIMARY KEY, DEFAULT uuid_generate_v4() | Unique module ID |
+| cohort_id | uuid | NOT NULL, REFERENCES cohorts(id) ON DELETE CASCADE | Parent cohort |
+| name | text | NOT NULL | Module name (e.g., "Docker Deep Dive") |
+| sequence | int | NOT NULL | Module order (1, 2, 3...) |
+| created_at | timestamptz | DEFAULT now() | Record creation timestamp |
+
+**Indexes:**
+- PRIMARY KEY on `id`
+- INDEX on `(cohort_id, sequence)`
+
+**Constraints:**
+- UNIQUE `(cohort_id, sequence)` - No duplicate module numbers per cohort
+
+---
+
+### lectures
+Represents individual lecture sessions.
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| id | uuid | PRIMARY KEY, DEFAULT uuid_generate_v4() | Unique lecture ID |
+| module_id | uuid | NOT NULL, REFERENCES modules(id) ON DELETE CASCADE | Parent module |
+| title | text | NOT NULL | Lecture title |
+| instructor | text | NOT NULL | Instructor name |
+| lecture_date | date | NOT NULL | Date lecture was delivered |
+| duration_mins | int | | Lecture duration in minutes |
+| vtt_file_url | text | | Supabase Storage URL for VTT file |
+| summary | jsonb | | Comprehensive lecture summary (JSON structure) |
+| key_topics | text[] | | Array of main topics/tools mentioned |
+| processed | boolean | DEFAULT false | Whether processing is complete |
+| processing_progress | int | DEFAULT 0 | Percentage complete (0-100) |
+| created_at | timestamptz | DEFAULT now() | Record creation timestamp |
+| updated_at | timestamptz | DEFAULT now() | Last update timestamp |
+
+**Summary JSONB Structure:**
+```json
+{
+  "executiveOverview": "3-5 sentence overview",
+  "sections": [
+    {
+      "title": "Docker Volumes",
+      "timestampStart": "00:23:15",
+      "timestampEnd": "00:35:40",
+      "durationMins": 12,
+      "keyConcepts": [
+        {
+          "concept": "Volume persistence",
+          "explanation": "...",
+          "timestamp": "00:23:45",
+          "snippet": "quote from transcript"
+        }
+      ],
+      "technicalDetails": [...],
+      "toolsMentioned": [...],
+      "demonstrations": [...]
+    }
+  ],
+  "toolsMentioned": [...],
+  "keyTakeaways": [...],
+  "resourcesShared": [...]
+}
+```
+
+**Indexes:**
+- PRIMARY KEY on `id`
+- INDEX on `(module_id, lecture_date DESC)`
+- INDEX on `instructor`
+
+---
+
+### resources
+Represents external resources (GitHub repos, YouTube videos, blogs, etc.).
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| id | uuid | PRIMARY KEY, DEFAULT uuid_generate_v4() | Unique resource ID |
+| url | text | NOT NULL, UNIQUE | Resource URL |
+| type | text | NOT NULL, CHECK type IN ('github', 'youtube', 'blog', 'rss', 'other') | Resource type |
+| title | text | NOT NULL | Resource title (auto-extracted) |
+| summary | text | | Auto-generated 3-5 sentence summary |
+| content | text | | Full scraped content (for re-processing) |
+| metadata | jsonb | | Type-specific metadata |
+| is_global | boolean | DEFAULT false | If true, visible across all cohorts |
+| created_by | uuid | REFERENCES auth.users(id) | Who added this resource |
+| scraped_at | timestamptz | | When content was last scraped |
+| created_at | timestamptz | DEFAULT now() | Record creation timestamp |
+
+**Metadata JSONB Examples:**
+```json
+// GitHub
+{
+  "owner": "docker",
+  "repo": "compose",
+  "stars": 12500,
+  "language": "Go",
+  "topics": ["docker", "containers"]
+}
+
+// YouTube
+{
+  "channelName": "TechWithTim",
+  "duration": "15:30",
+  "viewCount": 50000
+}
+
+// Blog
+{
+  "author": "Jane Doe",
+  "publishDate": "2024-12-15",
+  "tags": ["devops", "docker"]
+}
+```
+
+**Indexes:**
+- PRIMARY KEY on `id`
+- UNIQUE on `url`
+- INDEX on `type`
+- INDEX on `created_by`
+
+---
+
+### lecture_resources
+Many-to-many relationship between lectures and resources.
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| lecture_id | uuid | REFERENCES lectures(id) ON DELETE CASCADE | Lecture that mentioned resource |
+| resource_id | uuid | REFERENCES resources(id) ON DELETE CASCADE | Resource mentioned |
+| mention_context | text | | Where/how it was mentioned (optional) |
+| created_at | timestamptz | DEFAULT now() | When link was created |
+
+**Constraints:**
+- PRIMARY KEY `(lecture_id, resource_id)`
+
+**Indexes:**
+- PRIMARY KEY on `(lecture_id, resource_id)`
+- INDEX on `resource_id` (reverse lookup)
+
+---
+
+### knowledge_chunks
+Unified table for all searchable content (lectures + resources).
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| id | uuid | PRIMARY KEY, DEFAULT uuid_generate_v4() | Unique chunk ID |
+| type | text | NOT NULL, CHECK type IN ('lecture', 'resource') | Source type |
+| lecture_id | uuid | REFERENCES lectures(id) ON DELETE CASCADE | If type='lecture' |
+| resource_id | uuid | REFERENCES resources(id) ON DELETE CASCADE | If type='resource' |
+| text | text | NOT NULL | Chunk content (300-800 tokens) |
+| embedding | vector(1536) | NOT NULL | OpenAI embedding vector |
+| metadata | jsonb | NOT NULL | Type-specific metadata |
+| cohort_id | uuid | NOT NULL, REFERENCES cohorts(id) | For RLS filtering |
+| chunk_index | int | NOT NULL | Position in source document |
+| token_count | int | | Approximate token count |
+| created_at | timestamptz | DEFAULT now() | Record creation timestamp |
+
+**Metadata JSONB Structure:**
+
+For lecture chunks:
+```json
+{
+  "timestamp": "00:23:15",
+  "lectureTitle": "Docker Deep Dive",
+  "instructor": "Siddhanth",
+  "lectureDate": "2024-02-15",
+  "moduleNumber": 2
+}
+```
+
+For resource chunks:
+```json
+{
+  "resourceType": "github",
+  "resourceTitle": "Docker Compose",
+  "resourceUrl": "https://github.com/docker/compose",
+  "mentionedInLecture": "uuid-here",
+  "chunkIndex": 5
+}
+```
+
+**Why Include Titles:**
+- Improves search relevance (title match boost in ranking)
+- Helps users identify source quickly
+- Enables title-based filtering
+
+**Constraints:**
+- CHECK: `(type = 'lecture' AND lecture_id IS NOT NULL AND resource_id IS NULL) OR (type = 'resource' AND resource_id IS NOT NULL AND lecture_id IS NULL)`
+
+**Indexes:**
+- PRIMARY KEY on `id`
+- VECTOR INDEX (IVFFlat) on `embedding` (for similarity search)
+- INDEX on `(cohort_id, type)`
+- INDEX on `lecture_id` WHERE type='lecture'
+- INDEX on `resource_id` WHERE type='resource'
+
+---
+
+### user_cohorts
+Maps users to cohorts with roles.
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| user_id | uuid | REFERENCES auth.users(id) ON DELETE CASCADE | User ID (Supabase Auth) |
+| cohort_id | uuid | REFERENCES cohorts(id) ON DELETE CASCADE | Cohort ID |
+| role | text | NOT NULL, CHECK role IN ('student', 'instructor', 'admin') | User's role in cohort |
+| enrolled_at | timestamptz | DEFAULT now() | When user joined cohort |
+
+**Constraints:**
+- PRIMARY KEY `(user_id, cohort_id)`
+
+**Indexes:**
+- PRIMARY KEY on `(user_id, cohort_id)`
+- INDEX on `cohort_id` (for reverse lookups)
+
+---
+
+## Relationships & Constraints
+
+### Cascade Deletion Rules
+
+1. **Delete Cohort → Cascade to:**
+   - modules
+   - user_cohorts
+   - knowledge_chunks (via cohort_id)
+
+2. **Delete Module → Cascade to:**
+   - lectures
+
+3. **Delete Lecture → Cascade to:**
+   - knowledge_chunks (where type='lecture')
+   - lecture_resources
+
+4. **Delete Resource → Cascade to:**
+   - knowledge_chunks (where type='resource')
+   - lecture_resources
+
+5. **Delete User → Cascade to:**
+   - user_cohorts
+
+### Foreign Key Integrity
+
+All foreign keys have `ON DELETE CASCADE` to maintain referential integrity. This ensures:
+- No orphaned chunks when lecture/resource deleted
+- Clean removal of cohort data when cohort deleted
+- User enrollments cleaned up when user deleted
+
+---
+
+## Indexes & Performance
+
+### Critical Indexes
+
+**1. Vector Similarity Search (Most Important)**
+```sql
+CREATE INDEX idx_knowledge_chunks_embedding 
+ON knowledge_chunks 
+USING ivfflat (embedding vector_cosine_ops)
+WITH (lists = 100);
+```
+- **Purpose:** Fast vector similarity search
+- **Type:** IVFFlat (Inverted File with Flat compression)
+- **Lists Parameter:** 100 (tune based on total chunks: sqrt(total_rows))
+- **Expected Performance:** < 100ms for top-20 search on 50k chunks
+
+**2. Cohort Filtering**
+```sql
+CREATE INDEX idx_knowledge_chunks_cohort_type 
+ON knowledge_chunks(cohort_id, type);
+```
+- **Purpose:** Filter chunks by cohort before vector search
+- **Benefit:** Reduces search space, enables RLS
+
+**3. Lecture Lookup**
+```sql
+CREATE INDEX idx_lectures_module_date 
+ON lectures(module_id, lecture_date DESC);
+```
+- **Purpose:** Fast lecture list retrieval (ordered by date)
+- **Use Case:** Student dashboard
+
+**4. User Cohort Check**
+```sql
+CREATE INDEX idx_user_cohorts_user 
+ON user_cohorts(user_id, cohort_id);
+```
+- **Purpose:** Fast RLS policy evaluation
+- **Benefit:** Authorization checks < 10ms
+
+### Query Performance Targets
+
+| Query Type | Target | Current (Estimate) |
+|------------|--------|-------------------|
+| Vector search (top 20) | < 100ms | 80-120ms |
+| Get user's lectures | < 50ms | 30-50ms |
+| Check user cohort | < 10ms | 5-10ms |
+| Insert chunk batch (10) | < 200ms | 150-200ms |
+
+---
+
+## Row-Level Security Policies
+
+### Enable RLS on All Tables
+```sql
+ALTER TABLE knowledge_chunks ENABLE ROW LEVEL SECURITY;
+ALTER TABLE lectures ENABLE ROW LEVEL SECURITY;
+ALTER TABLE resources ENABLE ROW LEVEL SECURITY;
+ALTER TABLE modules ENABLE ROW LEVEL SECURITY;
+```
+
+### Policy 1: Cohort Isolation for Knowledge Chunks
+**Rule:** Students see only their cohort's chunks.
+
+```sql
+CREATE POLICY cohort_isolation_chunks ON knowledge_chunks
+FOR SELECT
+USING (
+  cohort_id IN (
+    SELECT cohort_id 
+    FROM user_cohorts 
+    WHERE user_id = auth.uid()
+  )
+);
+```
+
+### Policy 2: Lecture Access
+**Rule:** Users see lectures from modules in their cohorts.
+
+```sql
+CREATE POLICY cohort_isolation_lectures ON lectures
+FOR SELECT
+USING (
+  module_id IN (
+    SELECT m.id 
+    FROM modules m
+    JOIN user_cohorts uc ON uc.cohort_id = m.cohort_id
+    WHERE uc.user_id = auth.uid()
+  )
+);
+```
+
+### Policy 3: Resource Access
+**Rule:** Users see global resources OR resources linked to their cohort's lectures.
+
+```sql
+CREATE POLICY resource_access ON resources
+FOR SELECT
+USING (
+  is_global = true
+  OR id IN (
+    SELECT lr.resource_id 
+    FROM lecture_resources lr
+    JOIN lectures l ON l.id = lr.lecture_id
+    JOIN modules m ON m.id = l.module_id
+    JOIN user_cohorts uc ON uc.cohort_id = m.cohort_id
+    WHERE uc.user_id = auth.uid()
+  )
+);
+```
+
+### Policy 4: Admin Full Access
+**Rule:** Admins bypass all restrictions.
+
+```sql
+CREATE POLICY admin_full_access_chunks ON knowledge_chunks
+FOR ALL
+USING (
+  EXISTS (
+    SELECT 1 FROM user_cohorts
+    WHERE user_id = auth.uid() AND role = 'admin'
+  )
+);
+
+-- Repeat for lectures, resources, modules tables
+```
+
+### Policy 5: Instructor Multi-Cohort Access
+**Rule:** Instructors see all cohorts they teach.
+
+```sql
+CREATE POLICY instructor_access_chunks ON knowledge_chunks
+FOR SELECT
+USING (
+  cohort_id IN (
+    SELECT cohort_id 
+    FROM user_cohorts 
+    WHERE user_id = auth.uid() AND role IN ('instructor', 'admin')
+  )
+);
+```
+
+### Policy 6: Upload Permissions
+**Rule:** Only admins/instructors can insert lectures/resources.
+
+```sql
+CREATE POLICY upload_permission ON lectures
+FOR INSERT
+WITH CHECK (
+  EXISTS (
+    SELECT 1 FROM user_cohorts
+    WHERE user_id = auth.uid() AND role IN ('admin', 'instructor')
+  )
+);
+```
+
+---
+
+## API Endpoints
+
+### Authentication Endpoints
+
+#### POST /api/auth/login
+**Purpose:** User login  
+**Authentication:** None (public)  
+**Request Body:**
+```json
+{
+  "email": "student@example.com",
+  "password": "secure_password"
+}
+```
+**Response (200):**
+```json
+{
+  "success": true,
+  "token": "jwt_token_here",
+  "user": {
+    "id": "uuid",
+    "email": "student@example.com",
+    "cohorts": ["cohort-5"]
+  }
+}
+```
+**Errors:**
+- 401: Invalid credentials
+- 400: Missing email or password
+
+---
+
+#### POST /api/auth/logout
+**Purpose:** User logout  
+**Authentication:** Required (Bearer token)  
+**Response (200):**
+```json
+{
+  "success": true,
+  "message": "Logged out successfully"
+}
+```
+
+---
+
+### Query Endpoints
+
+#### POST /api/query
+**Purpose:** Ask question, get answer with sources  
+**Authentication:** Required  
+**Rate Limit:** 100 requests/hour per user
+
+**Request Body:**
+```json
+{
+  "query": "How do Docker volumes work?",
+  "lectureId": "optional-uuid-to-scope-search",
+  "context": [
+    {
+      "role": "user",
+      "content": "How does Docker work?"
+    },
+    {
+      "role": "assistant",
+      "content": "Docker is a containerization platform..."
+    }
+  ]
+}
+```
+
+**Context Array (Optional):**
+- Last 5-10 messages from conversation
+- Helps LLM understand follow-up questions
+- Example: "What about volumes?" → Understands previous Docker context
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "answer": "Docker volumes allow data persistence outside the container filesystem...",
+  "sources": [
+    {
+      "type": "lecture",
+      "id": "lecture-uuid",
+      "title": "Docker Deep Dive",
+      "instructor": "Siddhanth",
+      "date": "2024-02-15",
+      "timestamp": "00:23:15",
+      "timestampEnd": "00:28:30",
+      "snippet": "Volumes are managed by Docker in /var/lib/docker/volumes...",
+      "relevanceScore": 0.89
+    },
+    {
+      "type": "resource",
+      "id": "resource-uuid",
+      "title": "docker/compose README",
+      "resourceType": "github",
+      "url": "https://github.com/docker/compose",
+      "mentionedInLecture": "lecture-uuid",
+      "snippet": "Compose supports volume mounting with long and short syntax...",
+      "relevanceScore": 0.82
+    }
+  ],
+  "suggestedFollowUps": [
+    "What's the difference between volumes and bind mounts?",
+    "How do I backup Docker volumes?"
+  ],
+  "processingTime": 3200
+}
+```],
+  "suggestedFollowUps": [
+    "What's the difference between volumes and bind mounts?",
+    "How do I backup Docker volumes?"
+  ],
+  "processingTime": 3200
+}
+```
+
+**Errors:**
+- 400: Invalid query (empty or too long)
+- 401: Not authenticated
+- 429: Rate limit exceeded
+- 500: Processing error
+
+---
+
+### Lecture Endpoints
+
+#### POST /api/lectures/upload
+**Purpose:** Upload VTT and trigger processing  
+**Authentication:** Required (admin/instructor only)  
+**Content-Type:** multipart/form-data
+
+**Request Body (FormData):**
+```
+cohortId: "uuid"
+moduleId: "uuid"
+title: "Docker Deep Dive"
+instructor: "Siddhanth"
+lectureDate: "2024-02-15"
+vttFile: File (VTT format)
+```
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "lectureId": "new-lecture-uuid",
+  "message": "Upload successful, processing started",
+  "processingStatus": "processing"
+}
+```
+
+**Errors:**
+- 400: Invalid input (missing fields, wrong file type)
+- 401: Not authenticated
+- 403: Insufficient permissions
+- 413: File too large (> 10MB)
+- 500: Upload failed
+
+---
+
+#### GET /api/lectures/{lectureId}
+**Purpose:** Get lecture details and summary  
+**Authentication:** Required  
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "lecture": {
+    "id": "uuid",
+    "title": "Docker Deep Dive",
+    "instructor": "Siddhanth",
+    "date": "2024-02-15",
+    "durationMins": 150,
+    "moduleNumber": 2,
+    "processed": true,
+    "summary": {
+      "executiveOverview": "...",
+      "sections": [...],
+      "toolsMentioned": [...],
+      "keyTakeaways": [...]
+    },
+    "resources": [
+      {
+        "id": "uuid",
+        "type": "github",
+        "title": "docker/compose",
+        "url": "https://github.com/docker/compose",
+        "summary": "...",
+        "mentionContext": "Mentioned at 00:18:20"
+      }
+    ]
+  }
+}
+```
+
+**Errors:**
+- 401: Not authenticated
+- 403: Not in this lecture's cohort
+- 404: Lecture not found
+
+---
+
+#### GET /api/lectures/{lectureId}/status
+**Purpose:** Get processing status (for polling)  
+**Authentication:** Required  
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "status": "processing",
+  "progress": 65,
+  "message": "Processing chunks: 65/100"
+}
+```
+
+**Status Values:**
+- `pending`: Queued for processing
+- `processing`: Currently processing
+- `completed`: Fully processed
+- `failed`: Processing error
+
+---
+
+### Resource Endpoints
+
+#### POST /api/resources
+**Purpose:** Add resource URL (triggers auto-scraping)  
+**Authentication:** Required (admin/instructor only)
+
+**Request Body:**
+```json
+{
+  "url": "https://github.com/docker/compose",
+  "type": "github",
+  "lectureId": "optional-uuid",
+  "isGlobal": false
+}
+```
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "resourceId": "new-resource-uuid",
+  "message": "Resource added, scraping started"
+}
+```
+
+**Errors:**
+- 400: Invalid URL for specified type
+- 401: Not authenticated
+- 403: Insufficient permissions
+- 409: URL already exists
+- 500: Scraping failed
+
+---
+
+#### GET /api/resources/{resourceId}
+**Purpose:** Get resource details  
+**Authentication:** Required  
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "resource": {
+    "id": "uuid",
+    "type": "github",
+    "url": "https://github.com/docker/compose",
+    "title": "Docker Compose",
+    "summary": "Tool for defining multi-container Docker applications...",
+    "metadata": {
+      "owner": "docker",
+      "stars": 12500,
+      "language": "Go"
+    },
+    "mentionedInLectures": [
+      {
+        "lectureId": "uuid",
+        "lectureTitle": "Docker Deep Dive",
+        "timestamp": "00:18:20"
+      }
+    ]
+  }
+}
+```
+
+---
+
+### Admin Endpoints
+
+#### GET /api/admin/cohorts
+**Purpose:** List all cohorts  
+**Authentication:** Required (admin only)
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "cohorts": [
+    {
+      "id": "uuid",
+      "name": "Cohort 5",
+      "startDate": "2024-01-15",
+      "studentCount": 120,
+      "lectureCount": 45
+    }
+  ]
+}
+```
+
+---
+
+#### POST /api/admin/cohorts
+**Purpose:** Create new cohort  
+**Authentication:** Required (admin only)
+
+**Request Body:**
+```json
+{
+  "name": "Cohort 6",
+  "startDate": "2024-06-01"
+}
+```
+
+**Response (201):**
+```json
+{
+  "success": true,
+  "cohortId": "new-cohort-uuid"
+}
+```
+
+---
+
+#### POST /api/admin/users/assign
+**Purpose:** Assign users to cohorts  
+**Authentication:** Required (admin only)
+
+**Request Body:**
+```json
+{
+  "userEmails": ["student1@example.com", "student2@example.com"],
+  "cohortId": "cohort-uuid",
+  "role": "student"
+}
+```
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "assigned": 2,
+  "failed": []
+}
+```
+
+---
+
+## Request/Response Schemas
+
+### Standard Error Response
+All error responses follow this format:
+
+```json
+{
+  "success": false,
+  "error": "Error message here",
+  "code": "ERROR_CODE",
+  "details": {
+    "field": "Additional context"
+  },
+  "timestamp": "2024-02-15T10:30:00Z"
+}
+```
+
+### Common Error Codes
+
+| Code | HTTP Status | Description |
+|------|-------------|-------------|
+| AUTH_REQUIRED | 401 | Missing or invalid token |
+| FORBIDDEN | 403 | User lacks permission |
+| NOT_FOUND | 404 | Resource doesn't exist |
+| VALIDATION_ERROR | 400 | Invalid input data |
+| RATE_LIMIT_EXCEEDED | 429 | Too many requests |
+| PROCESSING_ERROR | 500 | Server error during processing |
+| EXTERNAL_API_ERROR | 502 | OpenRouter/Scraper API failed |
+
+---
+
+## Database Functions & Triggers
+
+### Custom Function: Vector Search with Cohort Filter
+
+```sql
+CREATE OR REPLACE FUNCTION search_knowledge(
+  query_embedding vector(1536),
+  match_threshold float DEFAULT 0.7,
+  match_count int DEFAULT 20,
+  filter_cohort_id uuid DEFAULT NULL,
+  filter_type text DEFAULT NULL
+)
+RETURNS TABLE (
+  id uuid,
+  type text,
+  text text,
+  metadata jsonb,
+  similarity float,
+  lecture_id uuid,
+  resource_id uuid
+)
+LANGUAGE sql STABLE
+AS $
+  SELECT
+    id,
+    type,
+    text,
+    metadata,
+    1 - (embedding <=> query_embedding) AS similarity,
+    lecture_id,
+    resource_id
+  FROM knowledge_chunks
+  WHERE 
+    (filter_cohort_id IS NULL OR cohort_id = filter_cohort_id)
+    AND (filter_type IS NULL OR type = filter_type)
+    AND 1 - (embedding <=> query_embedding) > match_threshold
+  ORDER BY embedding <=> query_embedding
+  LIMIT match_count;
+$;
+```
+
+**Usage from API:**
+```typescript
+const { data } = await supabase.rpc('search_knowledge', {
+  query_embedding: [0.123, 0.456, ...],
+  match_threshold: 0.7,
+  match_count: 20,
+  filter_cohort_id: userCohortId,
+  filter_type: null // or 'lecture' or 'resource'
+})
+```
+
+### Trigger: Update lecture updated_at on summary change
+
+```sql
+CREATE OR REPLACE FUNCTION update_lecture_timestamp()
+RETURNS TRIGGER AS $
+BEGIN
+  NEW.updated_at = now();
+  RETURN NEW;
+END;
+$ LANGUAGE plpgsql;
+
+CREATE TRIGGER lecture_update_timestamp
+BEFORE UPDATE ON lectures
+FOR EACH ROW
+EXECUTE FUNCTION update_lecture_timestamp();
+```
+
+---
+
+## API Rate Limits
+
+### Per-User Limits
+
+| Endpoint Pattern | Limit | Window |
+|-----------------|-------|--------|
+| POST /api/query | 100 requests | 1 hour |
+| POST /api/lectures/upload | 20 uploads | 1 hour |
+| POST /api/resources | 50 additions | 1 hour |
+| GET /api/lectures/* | 1000 requests | 1 hour |
+| GET /api/resources/* | 1000 requests | 1 hour |
+
+### Implementation
+- Use Vercel Edge Config or Upstash Redis (post-MVP)
+- Key: `ratelimit:{userId}:{endpoint}`
+- Sliding window algorithm
+
+---
+
+## Appendix
+
+### Database Seeding Script Structure
+
+**Initial data to seed:**
+1. **Prompt for real VTT files first** (recommended)
+2. If real data unavailable, create demo structure:
+   - 3 cohorts (Cohort 4, 5, 6)
+   - 3 modules per cohort
+   - Use sample VTT content (minimal for testing)
+3. Create 3 test users per cohort (always needed)
+4. Generate sample knowledge chunks from available data
+
+**Real Data Priority:**
+```bash
+npm run seed
+
+# Prompts:
+Do you have real VTT files to upload? (y/n): y
+Path to VTT files directory: ./lectures/module-2/
+Cohort name: Cohort 5
+Module number: 2
+...
+✅ Processing real lectures and generating embeddings
+```
+
+**Demo Data Fallback:**
+```bash
+npm run seed
+
+# Prompts:
+Do you have real VTT files to upload? (y/n): n
+📦 Using minimal demo data for testing...
+✅ Created 3 cohorts, 3 modules, sample content
+```
+
+### Migration Strategy
+
+**Version control migrations:**
+```
+migrations/
+├── 001_initial_schema.sql
+├── 002_add_knowledge_chunks.sql
+├── 003_add_rls_policies.sql
+├── 004_add_indexes.sql
+├── 005_seed_test_users.sql  # Always needed
+├── 006_seed_demo_data.sql    # Only if no real data
+```
+
+**Run via Supabase CLI:**
+```bash
+supabase db push
+```
+
+**Note:** Production should use real lecture data. Demo data is only for local development and testing when real VTT files are unavailable.
+
+---
+
+**Document Status:** ✅ Schema Approved  
+**Next Steps:** Implement API routes → Test with Postman/Thunder Client

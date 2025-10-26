@@ -1,0 +1,1742 @@
+**After Each TODO:**
+- [ ] Unit tests pass (if applicable)
+- [ ] Manual testing successful
+- [ ] No console errors
+- [ ] Git commit with conventional message
+- [ ] Update progress in this document
+
+**Before Moving to Next Phase:**
+- [ ] All P0 tasks in current phase complete
+- [ ] Integration test with previous phases
+- [ ] No blocking bugs
+- [ ] Documentation updated
+
+---
+
+## Commit Message Conventions
+
+Follow these patterns for all commits:
+
+```
+feat: add new feature
+fix: bug fix
+docs: documentation update
+test: add or update tests
+chore: maintenance tasks
+refactor: code refactoring
+style: formatting changes
+perf: performance improvement
+```
+
+**Examples:**
+```
+✅ feat: implement VTT parser with intro detection
+✅ fix: handle malformed VTT timestamps gracefully
+✅ test: add unit tests for semantic chunking
+✅ docs: update README with setup instructions
+```
+
+---
+
+## Progress Tracking Commands
+
+**Update progress after completing a task:**
+```bash
+# Find the task in this file
+# Change ⬜ to ✅
+# Update progress percentages at top
+# Commit: git commit -m "chore: mark TODO-X.Y as complete"
+```
+
+**Check current phase status:**
+```
+Phase 1: ✅✅✅⬜⬜⬜⬜⬜⬜ (3/9 complete)
+Phase 2: ⬜⬜⬜⬜⬜⬜⬜⬜ (0/8 complete)
+...
+```
+
+---
+
+## Time Tracking
+
+**Estimated vs Actual:**
+| Phase | Estimated | Actual | Delta |
+|-------|-----------|--------|-------|
+| Phase 1 | 3h | - | - |
+| Phase 2 | 3h | - | - |
+| Phase 3 | 2h | - | - |
+| Phase 4 | 3h | - | - |
+| Phase 5 | 3h | - | - |
+| Phase 6 | 2h | - | - |
+| Phase 7 | 1h | - | - |
+| **Total** | **20h** | **-** | **-** |
+
+**Track time as you go:**
+```
+Phase 1 actual: Started 10:00 AM, Ended 1:30 PM = 3.5 hours
+Phase 2 actual: Started 2:00 PM, Ended ...
+```
+
+---
+
+## Troubleshooting Guide
+
+### Common Issues & Solutions
+
+**Issue: VTT parsing fails**
+- Check file encoding (should be UTF-8)
+- Verify VTT format with online validator
+- Look for special characters or malformed timestamps
+
+**Issue: Embeddings generation slow**
+- Verify batch size (should be 10)
+- Check OpenRouter rate limit status
+- Increase wait time between batches
+
+**Issue: Vector search returns no results**
+- Verify embeddings were generated
+- Check similarity threshold (lower if too strict)
+- Verify cohort_id filter is correct
+- Test vector index with simple query
+
+**Issue: Supabase RLS blocks queries**
+- Check user is assigned to cohort
+- Verify RLS policies are correct
+- Test query as admin (bypasses RLS)
+- Check auth token is valid
+
+**Issue: Vercel deployment fails**
+- Verify all environment variables set
+- Check build logs for errors
+- Ensure dependencies in package.json
+- Test build locally first
+
+---
+
+## Emergency Shortcuts (If Behind Schedule)
+
+**If 5+ hours behind:**
+1. **Skip resource scraping** - Use manual summaries
+2. **Simplify UI** - Basic form, minimal styling
+3. **Reduce demo scope** - 3 lectures instead of 5
+4. **Skip follow-up questions** - Just answer + sources
+5. **Use sample queries** - Pre-populate common questions
+
+**If 10+ hours behind (Crisis Mode):**
+1. **Skip admin UI entirely** - Upload via direct DB inserts
+2. **Hardcode test data** - Don't build seed scripts
+3. **Mock some features** - Show UI without backend
+4. **Focus on one cohort** - Skip multi-tenancy for demo
+5. **Pre-record demo video** - Don't risk live demo failure
+
+---
+
+## Post-MVP Roadmap (Not for 20hr Build)
+
+### Week 1-2 After Hackathon
+- [ ] Implement resource auto-scraping (currently manual)
+- [ ] Add global cross-lecture search
+- [ ] Implement lecture browsing UI
+- [ ] Add timestamp deep-links to LMS videos
+- [ ] Instructor dashboard (edit summaries, view analytics)
+
+### Month 1-2
+- [ ] Response caching (Redis/Upstash)
+- [ ] Query result caching
+- [ ] Advanced reranking (cross-encoder)
+- [ ] Real-time processing updates (WebSockets)
+- [ ] User feedback system (thumbs up/down)
+
+### Month 3+
+- [ ] Catch-up mode (curated learning paths)
+- [ ] Module overviews (cross-lecture synthesis)
+- [ ] Community annotations
+- [ ] Analytics dashboard
+- [ ] Mobile app (React Native)
+
+---
+
+## Success Criteria Checklist
+
+### Must Have for Demo ✅
+- [ ] Upload VTT → Auto-process → Searchable
+- [ ] Chat query → Answer + 3-5 sources with timestamps
+- [ ] Sources include lectures (with timestamps) and resources
+- [ ] Cohort isolation works (students see only their cohort)
+- [ ] Admin can upload lectures
+- [ ] Admin can add resources (even if manual summary)
+- [ ] 5 demo lectures indexed
+- [ ] 10 demo resources indexed
+- [ ] 3 test accounts (student, instructor, admin)
+- [ ] Deployed to production
+- [ ] Demo script prepared
+
+### Nice to Have (Bonus Points)
+- [ ] Lecture summary view
+- [ ] Follow-up question suggestions
+- [ ] Resource auto-scraping working
+- [ ] Mobile responsive
+- [ ] Loading animations
+- [ ] Error messages helpful
+- [ ] 90%+ query accuracy
+
+### Demo Day Metrics
+- [ ] Query response time < 5 seconds
+- [ ] Zero crashes during demo
+- [ ] 8/10 test queries return useful results
+- [ ] Timestamp links work
+- [ ] Resource links work
+- [ ] Video recorded as backup
+
+---
+
+## Risk Management
+
+### High-Risk Tasks (Need Extra Attention)
+
+**TODO-2.2 (Semantic Chunking):**
+- **Risk:** Chunks split mid-concept
+- **Mitigation:** Extensive testing with 3+ VTT files
+- **Fallback:** Fixed-size chunks with larger overlap
+
+**TODO-4.2 (Hybrid Ranking):**
+- **Risk:** Poor result ranking, irrelevant answers
+- **Mitigation:** Test with 20 queries, tune weights
+- **Fallback:** Use pure vector similarity
+
+**TODO-6.1 (E2E Testing):**
+- **Risk:** Integration issues found late
+- **Mitigation:** Test continuously, don't wait until end
+- **Fallback:** Fix critical bugs only, document others
+
+**TODO-7.1 (Deployment):**
+- **Risk:** Environment issues in production
+- **Mitigation:** Deploy early and often, test in prod
+- **Fallback:** Run locally, screen-share demo
+
+---
+
+## Daily Standup (If Multi-Day Build)
+
+### Day 1 (Hours 1-8) Target:
+- ✅ Phase 1: Foundation complete
+- ✅ Phase 2: VTT processing 50% done
+
+### Day 2 (Hours 9-16) Target:
+- ✅ Phase 2: VTT processing complete
+- ✅ Phase 3: Resource scraping complete
+- ✅ Phase 4: RAG 50% done
+
+### Day 3 (Hours 17-20) Target:
+- ✅ Phase 4: RAG complete
+- ✅ Phase 5: UI complete
+- ✅ Phase 6 & 7: Testing, deploy, demo prep
+
+---
+
+## Final Pre-Demo Checklist
+
+**24 Hours Before Demo:**
+- [ ] All P0 features working
+- [ ] Demo data loaded (5 lectures, 10 resources)
+- [ ] Test accounts created
+- [ ] Demo script written
+- [ ] Backup video recorded
+- [ ] Production deployment stable
+
+**6 Hours Before Demo:**
+- [ ] Test demo flow 3 times
+- [ ] Check production environment
+- [ ] Verify OpenRouter quota remaining
+- [ ] Clear browser cache/cookies
+- [ ] Charge laptop fully
+- [ ] Have backup internet (phone hotspot)
+
+**1 Hour Before Demo:**
+- [ ] Open all tabs needed
+- [ ] Login to test accounts
+- [ ] Test one query to warm up system
+- [ ] Close unnecessary applications
+- [ ] Turn off notifications
+
+---
+
+## Contact & Support
+
+**If Stuck:**
+1. Check Cursor AI suggestions (Cmd+K)
+2. Review Context7 docs (auto-fetched)
+3. Check Supabase MCP logs
+4. Search GitHub issues for library
+5. Ask in 100x Engineers Discord
+
+**Critical Blockers:**
+- Database connection issues → Check Supabase dashboard
+- API rate limits → Check OpenRouter dashboard
+- Deployment failures → Check Vercel logs
+- Type errors → Regenerate types from Supabase
+
+---
+
+## Appendix: Quick Reference
+
+### Environment Variables
+```bash
+SUPABASE_URL=
+SUPABASE_ANON_KEY=
+SUPABASE_SERVICE_ROLE_KEY=
+OPENROUTER_API_KEY=
+GITHUB_TOKEN= (optional, for resource scraping)
+```
+
+### Useful Commands
+```bash
+# Development
+npm run dev
+
+# Database
+supabase db push
+supabase db pull
+supabase gen types typescript --local > types/database.ts
+
+# Testing
+npm run test
+npm run test:e2e
+
+# Deployment
+git push origin main  # Auto-deploys to Vercel
+
+# Seed data
+npm run seed
+```
+
+### Key Files
+```
+.env.local - Environment variables
+lib/db/schema.sql - Database schema
+lib/rag/index.ts - RAG engine
+app/api/query/route.ts - Main query endpoint
+app/(dashboard)/page.tsx - Chat UI
+```
+
+---
+
+**Document Status:** 🚀 Ready to Build  
+**Last Updated:** January 2025  
+**Next Action:** Start with TODO-1.1 (Project Initialization)
+
+---
+
+## Notes Section
+
+**Use this space to track:**
+- Issues encountered
+- Solutions found
+- Time spent per task
+- Ideas for improvements
+- Bugs to fix post-demo
+
+```
+[Date] [Time] [Task] [Note]
+Example:
+2025-01-15 10:30 TODO-2.1 - VTT parser works but slow with large files
+2025-01-15 14:00 TODO-4.2 - Increased recency boost from 0.05 to 0.1, better results
+```
+
+---
+
+**Remember:** 
+- Focus on P0 tasks only
+- Test continuously, don't wait until end
+- Commit often with clear messages
+- Document issues as you go
+- Ask for help early if stuck
+- Cut scope aggressively if behind
+- Working demo > perfect code**Subtasks:**
+- [ ] 1.3.1: Configure Supabase Auth (email provider, no OAuth for MVP)
+- [ ] 1.3.2: Create auth middleware (lib/auth/middleware.ts)
+- [ ] 1.3.3: Build login page (app/(auth)/login/page.tsx)
+- [ ] 1.3.4: Build signup page (app/(auth)/signup/page.tsx)
+- [ ] 1.3.5: Create AuthProvider context (components/auth-provider.tsx)
+- [ ] 1.3.6: Add protected route wrapper
+- [ ] 1.3.7: Test login/logout flow
+- [ ] 1.3.8: Seed test users with cohort assignments
+
+**Auth Middleware Pattern:**
+```typescript
+// Validates JWT, returns user object or error
+export async function authenticate(req: Request)
+export async function requireRole(req: Request, roles: string[])
+```
+
+**Success Criteria:**
+- ✅ Can login with email/password
+- ✅ JWT token stored securely (memory, not localStorage)
+- ✅ Protected routes redirect to login if unauthenticated
+- ✅ User object includes cohort_id
+
+**Testing:**
+- Login with test user → Token received
+- Access protected route without auth → Redirect to login
+- Access with auth → Success
+
+**Commit Message:** `feat: implement email-based authentication with Supabase Auth`
+
+---
+
+## Phase 1: Foundation (Hours 1-3) 🏗️
+
+**Goal:** Project scaffolding, database, and authentication ready.
+
+### TODO-1.1: Project Initialization ⬜
+**Est. Time:** 30 mins  
+**Dependencies:** None  
+**Priority:** P0
+
+**Subtasks:**
+- [ ] 1.1.1: Initialize Next.js 14 project with TypeScript and Tailwind
+- [ ] 1.1.2: Install core dependencies (see package list below)
+- [ ] 1.1.3: Configure environment variables (.env.local)
+- [ ] 1.1.4: Setup Cursor MCPs (Supabase, Vercel, Context7)
+- [ ] 1.1.5: Initialize Git repository and create GitHub repo
+- [ ] 1.1.6: Setup project structure (folders: app, lib, components, types)
+
+**Package List:**
+```
+Core: next, react, react-dom, typescript
+DB: @supabase/supabase-js
+AI: llamaindex, openai
+Utils: zod, date-fns, uuid
+Testing: vitest, @vitest/ui, @playwright/test
+```
+
+**Success Criteria:**
+- ✅ `npm run dev` starts development server
+- ✅ All environment variables defined
+- ✅ Git initialized with .gitignore
+- ✅ Cursor MCPs connected
+
+**Commit Message:** `chore: initialize project with Next.js 14 and core dependencies`
+
+---
+
+### TODO-1.2: Database Schema Setup ⬜
+**Est. Time:** 1 hour  
+**Dependencies:** TODO-1.1  
+**Priority:** P0
+
+**Subtasks:**
+- [ ] 1.2.1: Create Supabase project (via web or CLI)
+- [ ] 1.2.2: Enable pgvector extension
+- [ ] 1.2.3: Run schema SQL (create all tables from DATABASE_API_SPEC.md)
+- [ ] 1.2.4: Create vector search function (search_knowledge)
+- [ ] 1.2.5: Setup RLS policies (cohort isolation, admin access)
+- [ ] 1.2.6: Create database client in lib/db/client.ts
+- [ ] 1.2.7: Generate TypeScript types from schema (Supabase CLI)
+- [ ] 1.2.8: Test connection with simple query
+
+**SQL Files:**
+```
+lib/db/migrations/
+├── 001_schema.sql
+├── 002_rls_policies.sql
+├── 003_functions.sql
+├── 004_indexes.sql
+```
+
+**Success Criteria:**
+- ✅ All tables created in Supabase
+- ✅ pgvector extension enabled
+- ✅ RLS policies active
+- ✅ Can query from Next.js API route
+
+**Testing:**
+```typescript
+// Quick test in API route
+const { data } = await supabase.from('cohorts').select('*')
+console.log('DB connected:', data)
+```
+
+**Commit Message:** `feat: setup database schema with pgvector and RLS policies`
+
+---
+
+### TODO-1.3: Authentication System ⬜
+**Est. Time:** 1 hour  
+**Dependencies:** TODO-1.2  
+**Priority:** P0
+
+**Subtasks:**
+- [ ] 1.3.1: Configure Supabase Auth (email provider, no OAuth for MVP)
+- [ ] 1.3.2: Create auth middleware (lib/auth/middleware.ts)
+- [ ] 1.3.3: Build login page (app/(auth)/login/page.tsx)
+- [ ] 1.3.4: Build signup page (app/(auth)/signup/page.tsx)
+- [ ] 1.3.5: Create AuthProvider context (components/auth-provider.tsx)
+- [ ] 1.3.6: Add protected route wrapper
+- [ ] 1.3.7: Test login/logout flow
+- [ ] 1.3.8: Seed test users with cohort assignments
+
+**Auth Middleware Pattern:**
+```typescript
+// Validates JWT, returns user object or error
+export async function authenticate(req: Request)
+export async function requireRole(req: Request, roles: string[])
+```
+
+**Success Criteria:**
+- ✅ Can login with email/password
+- ✅ JWT token stored securely (memory, not localStorage)
+- ✅ Protected routes redirect to login if unauthenticated
+- ✅ User object includes cohort_id
+
+**Testing:**
+- Login with test user → Token received
+- Access protected route without auth → Redirect to login
+- Access with auth → Success
+
+**Commit Message:** `feat: implement email-based authentication with Supabase Auth`
+
+### TODO-1.4: Seed Demo Data ⬜
+**Est. Time:** 30 mins  
+**Dependencies:** TODO-1.2, TODO-1.3  
+**Priority:** P0
+
+**Subtasks:**
+- [ ] 1.4.1: Create seed script with **real data prompt** (scripts/seed-data.ts)
+- [ ] 1.4.2: Implement real VTT file upload flow
+- [ ] 1.4.3: Implement demo data fallback
+- [ ] 1.4.4: Create 3 cohorts (if using demo data)
+- [ ] 1.4.5: Create 3 modules per cohort (if using demo data)
+- [ ] 1.4.6: Create 3 test users per cohort
+- [ ] 1.4.7: Assign users to cohorts with roles
+- [ ] 1.4.8: Document test credentials in README
+
+**Seed Script Structure:**
+```typescript
+// scripts/seed-data.ts
+import readline from 'readline'
+
+async function prompt(question: string): Promise<string> {
+  const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout
+  })
+  
+  return new Promise(resolve => {
+    rl.question(question, answer => {
+      rl.close()
+      resolve(answer)
+    })
+  })
+}
+
+async function main() {
+  console.log('🌱 Database Seeding\n')
+  
+  // Ask for real data first
+  const useRealData = await prompt('Do you have real VTT files to upload? (y/n): ')
+  
+  if (useRealData.toLowerCase() === 'y') {
+    console.log('\n📁 Please provide the following:')
+    
+    const vttDir = await prompt('Path to VTT files directory: ')
+    const cohortName = await prompt('Cohort name (e.g., Cohort 5): ')
+    const moduleNum = await prompt('Module number (e.g., 2): ')
+    const moduleName = await prompt('Module name (e.g., Docker Deep Dive): ')
+    
+    console.log('\n⚙️  Processing real data...')
+    await uploadRealLectures({
+      vttDirectory: vttDir,
+      cohortName,
+      moduleNumber: parseInt(moduleNum),
+      moduleName
+    })
+    
+    console.log('✅ Real data uploaded successfully!')
+  } else {
+    console.log('\n📦 Using demo data for testing...')
+    await seedDemoData()
+    console.log('✅ Demo data seeded successfully!')
+  }
+  
+  // Always create test users
+  console.log('\n👥 Creating test users...')
+  await createTestUsers()
+  console.log('✅ Test users created!')
+  
+  console.log('\n🎉 Seeding complete!')
+}
+
+async function uploadRealLectures(config: RealDataConfig) {
+  const fs = require('fs')
+  const path = require('path')
+  
+  // Get all VTT files from directory
+  const files = fs.readdirSync(config.vttDirectory)
+    .filter(f => f.endsWith('.vtt'))
+  
+  console.log(`Found ${files.length} VTT files`)
+  
+  for (const file of files) {
+    const lectureTitle = await prompt(`Title for ${file}: `)
+    const instructor = await prompt(`Instructor name: `)
+    const date = await prompt(`Lecture date (YYYY-MM-DD): `)
+    
+    const vttContent = fs.readFileSync(
+      path.join(config.vttDirectory, file),
+      'utf-8'
+    )
+    
+    // Upload via API or direct DB insert
+    await uploadLecture({
+      cohortName: config.cohortName,
+      moduleName: config.moduleName,
+      title: lectureTitle,
+      instructor,
+      date,
+      vttContent
+    })
+    
+    console.log(`✓ Uploaded: ${lectureTitle}`)
+  }
+}
+
+async function seedDemoData() {
+  // Create 3 cohorts
+  const cohorts = await createCohorts([
+    { name: 'Cohort 4', startDate: '2024-01-01' },
+    { name: 'Cohort 5', startDate: '2024-06-01' },
+    { name: 'Cohort 6', startDate: '2025-01-01' }
+  ])
+  
+  // Create modules and demo lectures (with sample VTT)
+  // ...
+}
+
+async function createTestUsers() {
+  const users = [
+    { email: 'student@cohort5.com', password: 'demo123', role: 'student', cohort: 'Cohort 5' },
+    { email: 'instructor@cohort5.com', password: 'demo123', role: 'instructor', cohort: 'Cohort 5' },
+    { email: 'admin@100x.com', password: 'demo123', role: 'admin', cohort: null }
+  ]
+  
+  for (const user of users) {
+    await createUser(user)
+  }
+}
+
+main()
+```
+
+**Test Users:**
+```
+student@cohort5.com / demo123 (role: student, Cohort 5)
+instructor@cohort5.com / demo123 (role: instructor, Cohort 5)
+admin@100x.com / demo123 (role: admin, all cohorts)
+```
+
+**Success Criteria:**
+- ✅ **Prompts for real data first**
+- ✅ **Can upload real VTT files from directory**
+- ✅ Falls back to demo data if no real data
+- ✅ 3 cohorts in database (if demo)
+- ✅ 9 modules total (if demo)
+- ✅ 3 test users created
+- ✅ Can login as each test user
+
+**Commit Message:** `chore: add seed script with real data prompt and demo fallback`
+
+---
+
+## Phase 2: VTT Processing Pipeline (Hours 4-6) 📹
+
+**Goal:** Lectures uploaded, parsed, chunked, embedded, and summarized.
+
+### TODO-2.1: VTT Parser Module ⬜
+**Est. Time:** 1 hour  
+**Dependencies:** TODO-1.2 (needs database)  
+**Priority:** P0
+
+**Subtasks:**
+- [ ] 2.1.1: Install webvtt-parser library
+- [ ] 2.1.2: Create VTT parser (lib/vtt/parser.ts)
+- [ ] 2.1.3: **Implement sequence number filtering** (skip lines with only digits)
+- [ ] 2.1.4: Handle edge cases (missing timestamps, special chars)
+- [ ] 2.1.5: Implement intro detection (lib/vtt/intro-detector.ts) - **10 min fallback**
+- [ ] 2.1.6: Add timestamp utilities (lib/vtt/timestamp-utils.ts)
+- [ ] 2.1.7: Write unit tests (tests/vtt-parser.test.ts)
+- [ ] 2.1.8: Test with 3 sample VTT files (verify sequence numbers skipped)
+
+**Parser Interface:**
+```typescript
+interface VTTSegment {
+  index: number
+  startTime: string
+  endTime: string
+  text: string
+  speaker?: string
+}
+
+export function parseVTT(content: string): VTTSegment[]
+export function findLectureStart(segments: VTTSegment[]): number
+export function isSequenceNumber(line: string): boolean
+```
+
+**Sequence Number Detection:**
+```typescript
+function isSequenceNumber(line: string): boolean {
+  // Return true if line contains ONLY digits (1, 2, 3, etc.)
+  return /^\d+$/.test(line.trim())
+}
+
+// Usage in parser:
+if (isSequenceNumber(line)) {
+  continue // Skip this line
+}
+```
+
+**Intro Detection Strategy:**
+- Look for keywords: "today", "we'll cover", "let's start", "agenda"
+- **Fallback: Skip first 10 minutes** (changed from 5 mins)
+- Return index of first substantive segment
+
+**Success Criteria:**
+- ✅ Parses valid VTT files correctly
+- ✅ **Skips sequence number lines (1, 2, 3...)**
+- ✅ **Keeps numbers in speech** (e.g., "step 1", "chapter 2")
+- ✅ Handles malformed VTT gracefully (doesn't crash)
+- ✅ **Intro detection skips first ~10 mins successfully**
+- ✅ Works on 3/3 test files
+- ✅ All tests pass
+
+**Test Cases:**
+```typescript
+// Test 1: Sequence numbers removed
+const vtt = `1\n00:00:00.000 --> 00:00:03.000\nHello\n2\n00:00:03.000 --> 00:00:06.000\nWorld`
+const segments = parseVTT(vtt)
+expect(segments).toHaveLength(2)
+expect(segments[0].text).toBe('Hello') // No "1" in text
+
+// Test 2: Numbers in speech preserved
+const vtt2 = `1\n00:00:00.000 --> 00:00:03.000\nStep 1 is important`
+const segments2 = parseVTT(vtt2)
+expect(segments2[0].text).toBe('Step 1 is important') // "1" preserved
+
+// Test 3: Intro detection at 10 mins
+const segments3 = [
+  { text: 'Music', startTime: '00:00:00.000' },
+  { text: 'Welcome everyone', startTime: '00:09:00.000' },
+  { text: 'Today we will cover Docker', startTime: '00:10:30.000' }
+]
+const start = findLectureStart(segments3)
+expect(start).toBe(2) // Found keyword after 10 mins
+```
+
+**Commit Message:** `feat(vtt): implement parser with sequence number filtering and 10min intro skip`
+
+---
+
+### TODO-2.2: Semantic Chunking ⬜
+**Est. Time:** 1 hour  
+**Dependencies:** TODO-2.1  
+**Priority:** P0
+
+**Subtasks:**
+- [ ] 2.2.1: Install LlamaIndex node parser
+- [ ] 2.2.2: Create chunker module (lib/vtt/chunker.ts)
+- [ ] 2.2.3: Implement hybrid chunking (300-800 tokens, 50 token overlap)
+- [ ] 2.2.4: Preserve timestamps in chunk metadata
+- [ ] 2.2.5: Add token counting utility
+- [ ] 2.2.6: Write unit tests (tests/chunker.test.ts)
+- [ ] 2.2.7: Verify no mid-sentence splits
+
+**Chunker Interface:**
+```typescript
+interface Chunk {
+  text: string
+  startTime: string
+  endTime: string
+  tokenCount: number
+  metadata: {
+    chunkIndex: number
+    hasOverlap: boolean
+  }
+}
+
+export async function chunkVTT(
+  segments: VTTSegment[],
+  config: ChunkingConfig
+): Promise<Chunk[]>
+```
+
+**Chunking Config:**
+```typescript
+{
+  minTokens: 300,
+  maxTokens: 800,
+  overlap: 50,
+  respectBoundaries: ['\n\n', '. ', '? ', '! ']
+}
+```
+
+**Success Criteria:**
+- ✅ Chunks between 300-800 tokens
+- ✅ 50 token overlap between consecutive chunks
+- ✅ No mid-sentence splits
+- ✅ Timestamps accurate to chunk content
+
+**Testing:**
+```typescript
+const segments = parseVTT(sampleVTT)
+const chunks = await chunkVTT(segments, config)
+// Verify chunk[1] includes last 50 tokens of chunk[0]
+// Verify no chunk ends mid-sentence
+```
+
+**Commit Message:** `feat: implement semantic chunking with overlap and boundary respect`
+
+---
+
+### TODO-2.3: Embedding Generation ⬜
+**Est. Time:** 45 mins  
+**Dependencies:** TODO-2.2, TODO-1.2  
+**Priority:** P0
+
+**Subtasks:**
+- [ ] 2.3.1: Configure OpenRouter client (lib/ai/openrouter.ts)
+- [ ] 2.3.2: Create embedding generator (lib/ai/embeddings.ts)
+- [ ] 2.3.3: Implement batching (10 chunks per request)
+- [ ] 2.3.4: Add rate limit handling (15 RPM)
+- [ ] 2.3.5: Add retry logic with exponential backoff
+- [ ] 2.3.6: Test with sample chunks
+
+**Embedder Interface:**
+```typescript
+export async function generateEmbeddings(
+  texts: string[],
+  batchSize: number = 10
+): Promise<number[][]>
+
+export async function generateEmbeddingsBatch(
+  chunks: Chunk[]
+): Promise<Array<{ chunk: Chunk, embedding: number[] }>>
+```
+
+**Rate Limit Strategy:**
+- Batch 10 chunks per request
+- Wait 4 seconds between batches (15 RPM limit)
+- Exponential backoff on 429 errors
+
+**Success Criteria:**
+- ✅ Generates 1536-dim embeddings
+- ✅ Respects rate limits (no 429 errors)
+- ✅ Handles API failures gracefully
+- ✅ Progress tracking works
+
+**Commit Message:** `feat: implement embedding generation with OpenRouter and rate limiting`
+
+---
+
+### TODO-2.4: Summary Generation ⬜
+**Est. Time:** 1.5 hours  
+**Dependencies:** TODO-2.1 (needs chunks)  
+**Priority:** P0
+
+**Subtasks:**
+- [ ] 2.4.1: Create summarizer module (lib/ai/summarizer.ts)
+- [ ] 2.4.2: Implement topic detection (identify sections)
+- [ ] 2.4.3: Implement per-section summary generation
+- [ ] 2.4.4: Implement tool/framework extraction
+- [ ] 2.4.5: Implement resource mention extraction
+- [ ] 2.4.6: Implement takeaway generation
+- [ ] 2.4.7: Test with 2-hour lecture transcript
+
+**Summary Structure (JSONB):**
+```typescript
+interface LectureSummary {
+  executiveOverview: string
+  sections: Section[]
+  toolsMentioned: Tool[]
+  keyTakeaways: string[]
+  resourcesShared: string[]
+}
+
+interface Section {
+  title: string
+  timestampStart: string
+  timestampEnd: string
+  durationMins: number
+  keyConcepts: ConceptWithTimestamp[]
+  technicalDetails: string[]
+  demonstrations: Demo[]
+}
+```
+
+**Prompt Strategy:**
+- Emphasize comprehensiveness ("2-3 hour lecture, not 10-min talk")
+- Request timestamps for every element
+- Ask for specific examples/quotes
+- Use structured JSON output
+
+**Success Criteria:**
+- ✅ Summary covers all major topics
+- ✅ Every section has timestamp range
+- ✅ All tools mentioned are extracted
+- ✅ Demonstrations identified with timestamps
+- ✅ Summary is detailed (not just bullet points)
+
+**Commit Message:** `feat: implement comprehensive lecture summary generation with timestamps`
+
+---
+
+### TODO-2.5: VTT Upload API ⬜
+**Est. Time:** 1 hour  
+**Dependencies:** TODO-2.1, TODO-2.2, TODO-2.3, TODO-2.4, TODO-1.3  
+**Priority:** P0
+
+**Subtasks:**
+- [ ] 2.5.1: Create upload endpoint (app/api/vtt/upload/route.ts)
+- [ ] 2.5.2: Implement file upload to Supabase Storage
+- [ ] 2.5.3: Implement background processing pipeline
+- [ ] 2.5.4: Add progress tracking (update DB after each batch)
+- [ ] 2.5.5: Create status endpoint (app/api/vtt/status/route.ts)
+- [ ] 2.5.6: Handle errors gracefully (log and return)
+- [ ] 2.5.7: Test full pipeline with sample VTT
+
+**Processing Pipeline:**
+```
+1. Upload VTT to Storage
+2. Parse VTT → segments
+3. Detect and skip intro
+4. Chunk semantically
+5. Generate embeddings (batched)
+6. Store chunks in knowledge_chunks table
+7. Generate summary
+8. Update lecture record
+9. Mark as processed
+```
+
+**API Endpoints:**
+```
+POST /api/vtt/upload
+GET /api/vtt/status/:lectureId
+```
+
+**Success Criteria:**
+- ✅ Can upload VTT file via API
+- ✅ Processing completes in < 3 mins for 2-hour lecture
+- ✅ Progress updates every 10 chunks
+- ✅ Summary generated and stored
+- ✅ Chunks searchable after processing
+
+**Testing:**
+```bash
+curl -F "vtt=@sample.vtt" \
+     -F "cohortId=uuid" \
+     -F "moduleId=uuid" \
+     -F "title=Test Lecture" \
+     http://localhost:3000/api/vtt/upload
+```
+
+**Commit Message:** `feat: implement VTT upload API with background processing`
+
+---
+
+## Phase 3: Resource Scraping (Hours 7-9) 🌐
+
+**Goal:** Resources auto-scraped, chunked, embedded, and searchable.
+
+### TODO-3.1: Adapt Boilerplate Scrapers ⬜
+**Est. Time:** 1 hour  
+**Dependencies:** TODO-1.2  
+**Priority:** P0
+
+**Subtasks:**
+- [ ] 3.1.1: Copy scraper boilerplate to lib/scrapers/
+- [ ] 3.1.2: Update types (Source → Resource)
+- [ ] 3.1.3: Adapt GitHub scraper (lib/scrapers/github.ts)
+- [ ] 3.1.4: **Install and implement YouTube transcript scraper** (lib/scrapers/youtube.ts)
+- [ ] 3.1.5: Adapt blog scraper (lib/scrapers/blog.ts)
+- [ ] 3.1.6: Update validators (lib/scrapers/validators.ts)
+- [ ] 3.1.7: Test each scraper independently
+
+**YouTube Scraper (New Implementation):**
+```bash
+# Install library
+npm install youtube-transcript
+```
+
+```typescript
+// lib/scrapers/youtube.ts
+import { YoutubeTranscript } from 'youtube-transcript'
+
+export const youtubeScraper: Scraper = {
+  name: 'youtube',
+  
+  validate: (url: string) => {
+    return /youtube\.com\/watch\?v=|youtu\.be\//.test(url)
+  },
+  
+  scrape: async (url: string) => {
+    const videoId = extractVideoId(url)
+    
+    // Fetch transcript using library (not scraping!)
+    const transcript = await YoutubeTranscript.fetchTranscript(videoId)
+    // Returns: [{ text, duration, offset }, ...]
+    
+    // Combine into full text
+    const content = transcript.map(t => t.text).join(' ')
+    
+    // Get video metadata (optional, via YouTube Data API)
+    const metadata = await getVideoMetadata(videoId)
+    
+    return {
+      title: metadata.title,
+      content,
+      metadata: {
+        videoId,
+        channel: metadata.channelTitle,
+        duration: metadata.duration,
+        viewCount: metadata.viewCount
+      }
+    }
+  }
+}
+
+function extractVideoId(url: string): string {
+  const match = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&]+)/)
+  return match ? match[1] : ''
+}
+```
+
+**Scraper Interface:**
+```typescript
+export interface Scraper {
+  name: string
+  validate: (url: string) => boolean
+  scrape: (url: string) => Promise<ScrapedContent>
+}
+
+export interface ScrapedContent {
+  title: string
+  content: string
+  metadata: Record<string, any>
+}
+```
+
+**Success Criteria:**
+- ✅ GitHub README scraped successfully
+- ✅ **YouTube transcript extracted via youtube-transcript library**
+- ✅ Blog article content scraped
+- ✅ URL validation prevents invalid submissions
+- ✅ All scrapers return consistent ScrapedContent format
+
+**Testing:**
+```typescript
+// Test YouTube scraper
+const content = await scrapeYouTube('https://youtube.com/watch?v=abc123')
+expect(content.title).toBeTruthy()
+expect(content.content).toContain('docker') // If video about Docker
+expect(content.metadata.videoId).toBe('abc123')
+```
+
+**Commit Message:** `feat(scrapers): add YouTube transcript extraction with youtube-transcript library`
+
+---
+
+### TODO-3.2: Resource Processing Pipeline ⬜
+**Est. Time:** 1 hour  
+**Dependencies:** TODO-3.1, TODO-2.2, TODO-2.3  
+**Priority:** P0
+
+**Subtasks:**
+- [ ] 3.2.1: Create resource processor (lib/scrapers/processor.ts)
+- [ ] 3.2.2: Implement content chunking (similar to VTT, no timestamps)
+- [ ] 3.2.3: Implement embedding generation for resource chunks
+- [ ] 3.2.4: Implement auto-summary generation (LLM)
+- [ ] 3.2.5: Store chunks in knowledge_chunks table (type='resource')
+- [ ] 3.2.6: Test with sample GitHub repo
+
+**Processing Flow:**
+```
+1. Validate URL
+2. Scrape content
+3. Chunk content (300-800 tokens)
+4. Generate embeddings
+5. Generate summary (3-5 sentences)
+6. Store resource + chunks
+7. Link to lecture (if specified)
+```
+
+**Success Criteria:**
+- ✅ Resource scraped and chunked
+- ✅ Embeddings generated
+- ✅ Summary auto-generated (no manual input)
+- ✅ Chunks stored with type='resource'
+- ✅ Linked to lecture if provided
+
+**Commit Message:** `feat: implement resource processing pipeline with auto-summarization`
+
+---
+
+### TODO-3.3: Resource Management API ⬜
+**Est. Time:** 45 mins  
+**Dependencies:** TODO-3.2, TODO-1.3  
+**Priority:** P0
+
+**Subtasks:**
+- [ ] 3.3.1: Create resource endpoints (app/api/resources/route.ts)
+- [ ] 3.3.2: Implement POST (add resource)
+- [ ] 3.3.3: Implement GET (list resources)
+- [ ] 3.3.4: Implement GET /:id (resource details)
+- [ ] 3.3.5: Add lecture-resource linking
+- [ ] 3.3.6: Test CRUD operations
+
+**API Endpoints:**
+```
+POST /api/resources
+GET /api/resources
+GET /api/resources/:id
+```
+
+**Success Criteria:**
+- ✅ Can add resource via API
+- ✅ Scraping triggered automatically
+- ✅ Can retrieve resource details
+- ✅ Resources linked to lectures
+
+**Commit Message:** `feat: implement resource management API with auto-scraping`
+
+---
+
+## Phase 4: RAG Implementation (Hours 10-13) 🤖
+
+**Goal:** Chat queries return accurate answers with ranked sources.
+
+### TODO-4.1: LlamaIndex + Supabase Setup ⬜
+**Est. Time:** 1 hour  
+**Dependencies:** TODO-1.2, TODO-2.3  
+**Priority:** P0
+
+**Subtasks:**
+- [ ] 4.1.1: Install LlamaIndex Supabase vector store
+- [ ] 4.1.2: Create RAG module (lib/rag/index.ts)
+- [ ] 4.1.3: Configure LLM (OpenRouter Gemini)
+- [ ] 4.1.4: Configure embeddings (OpenAI via OpenRouter)
+- [ ] 4.1.5: Connect to Supabase vector store
+- [ ] 4.1.6: Create vector store index
+- [ ] 4.1.7: Test basic query
+
+**RAG Setup:**
+```typescript
+// lib/rag/index.ts
+export function getQueryEngine()
+export async function queryKnowledge(
+  query: string,
+  userId: string
+): Promise<ChatResponse>
+```
+
+**Success Criteria:**
+- ✅ LlamaIndex connected to Supabase
+- ✅ Can query vector store
+- ✅ Returns similar chunks
+- ✅ Respects cohort filtering
+
+**Commit Message:** `feat: setup LlamaIndex RAG with Supabase vector store`
+
+---
+
+### TODO-4.2: Hybrid Ranking System ⬜
+**Est. Time:** 1.5 hours  
+**Dependencies:** TODO-4.1  
+**Priority:** P0
+
+**Subtasks:**
+- [ ] 4.2.1: Create reranker module (lib/rag/reranker.ts)
+- [ ] 4.2.2: Implement recency boost
+- [ ] 4.2.3: Implement metadata match boost (instructor name)
+- [ ] 4.2.4: Implement code presence boost
+- [ ] 4.2.5: Implement resource type relevance
+- [ ] 4.2.6: Implement lecture/resource balance
+- [ ] 4.2.7: Test ranking with sample queries
+
+**Reranking Factors:**
+```typescript
+interface RankingFactors {
+  vectorSimilarity: number (0-1)
+  recencyBoost: number (0-0.1)
+  metadataMatch: number (0-0.15)
+  codePresence: number (0-0.08)
+  resourceTypeRelevance: number (0-0.12)
+}
+```
+
+**Success Criteria:**
+- ✅ Recent lectures ranked higher
+- ✅ Instructor name queries boost correct instructor
+- ✅ Technical queries boost code-containing chunks
+- ✅ Resource queries boost relevant resource types
+- ✅ Top 5 includes mix of lectures and resources
+
+**Commit Message:** `feat: implement hybrid ranking system for search results`
+
+---
+
+### TODO-4.3: Query API Endpoint ⬜
+**Est. Time:** 1.5 hours  
+**Dependencies:** TODO-4.2  
+**Priority:** P0
+
+**Subtasks:**
+- [ ] 4.3.1: Create query endpoint (app/api/query/route.ts)
+- [ ] 4.3.2: Implement user authentication check
+- [ ] 4.3.3: Get user's cohort ID
+- [ ] 4.3.4: **Parse conversation context from request**
+- [ ] 4.3.5: Execute vector search with filters
+- [ ] 4.3.6: Rerank results (including title matching)
+- [ ] 4.3.7: **Build context prompt with conversation history**
+- [ ] 4.3.8: Generate answer with citations
+- [ ] 4.3.9: Format response
+- [ ] 4.3.10: Add error handling
+- [ ] 4.3.11: Test with 10 sample queries
+- [ ] 4.3.12: **Test follow-up questions with context**
+
+**API Endpoint:**
+```
+POST /api/query
+Body: { 
+  query: string, 
+  lectureId?: string,
+  context?: Array<{ role: string, content: string }> 
+}
+Response: { answer, sources[], suggestedFollowUps[] }
+```
+
+**Context Integration:**
+```typescript
+export async function POST(req: NextRequest) {
+  const { query, context, lectureId } = await req.json()
+  
+  // Build conversation history for LLM
+  const conversationHistory = context?.map(m => 
+    `${m.role === 'user' ? 'User' : 'Assistant'}: ${m.content}`
+  ).join('\n\n') || ''
+  
+  // Include in prompt
+  const prompt = `
+You are a teaching assistant. Answer the question using the sources provided.
+
+${conversationHistory ? `Conversation History:\n${conversationHistory}\n\n` : ''}
+
+Current Question: ${query}
+
+Sources:
+${sources.map(s => `[${s.title}]\n${s.text}`).join('\n\n')}
+
+Answer the current question, using conversation context if relevant.
+  `
+}
+```
+
+**Success Criteria:**
+- ✅ Returns answer in < 5 seconds
+- ✅ Cites 3-5 relevant sources
+- ✅ Sources include lectures and resources
+- ✅ Timestamps correct for lecture sources
+- ✅ **Titles included in source metadata**
+- ✅ **Follow-up questions understand context**
+- ✅ 8/10 test queries return useful answers
+
+**Test Cases:**
+```typescript
+// Test 1: Standalone query
+POST /api/query
+{ "query": "How do Docker volumes work?" }
+// Should return answer about Docker volumes
+
+// Test 2: Follow-up with context
+POST /api/query
+{ 
+  "query": "What about volumes?",
+  "context": [
+    { "role": "user", "content": "How does Docker work?" },
+    { "role": "assistant", "content": "Docker is a containerization..." }
+  ]
+}
+// Should understand "volumes" refers to Docker volumes
+
+// Test 3: Title matching
+POST /api/query
+{ "query": "Docker networking tutorial" }
+// Should boost sources with "networking" in title
+```
+
+**Commit Message:** `feat(api): implement query endpoint with context support and title matching`
+
+---
+
+### TODO-4.4: Follow-Up Question Generation ⬜
+**Est. Time:** 30 mins  
+**Dependencies:** TODO-4.3  
+**Priority:** P1 (Nice to have)
+
+**Subtasks:**
+- [ ] 4.4.1: Analyze user query and answer
+- [ ] 4.4.2: Generate 2-3 related questions
+- [ ] 4.4.3: Add to API response
+- [ ] 4.4.4: Test quality of suggestions
+
+**Success Criteria:**
+- ✅ Suggests relevant follow-ups
+- ✅ Questions are natural and useful
+- ✅ 7/10 suggestions are actually helpful
+
+**Commit Message:** `feat: add follow-up question suggestions to query responses`
+
+---
+
+## Phase 5: UI Development (Hours 14-17) 🎨
+
+**Goal:** Simple, functional chat interface with source display.
+
+### TODO-5.1: Chat Interface ⬜
+**Est. Time:** 2 hours  
+**Dependencies:** TODO-1.3, TODO-4.3  
+**Priority:** P0
+
+**Subtasks:**
+- [ ] 5.1.1: Create chat page (app/(dashboard)/page.tsx)
+- [ ] 5.1.2: Build chat input component (components/chat-input.tsx)
+- [ ] 5.1.3: Build message list component (components/message-list.tsx)
+- [ ] 5.1.4: Build source card component (components/source-card.tsx)
+- [ ] 5.1.5: **Implement message state management** (last 10 messages)
+- [ ] 5.1.6: **Implement context passing to API**
+- [ ] 5.1.7: Implement query submission with loading states
+- [ ] 5.1.8: Add error handling UI
+- [ ] 5.1.9: **Add "Clear History" button**
+- [ ] 5.1.10: Style with Tailwind (clean, minimal)
+- [ ] 5.1.11: Test on mobile (responsive)
+
+**UI Components:**
+```
+<ChatInterface>
+  <MessageList>
+    <UserMessage />
+    <BotMessage>
+      <Answer />
+      <SourceList>
+        <SourceCard type="lecture" title="Docker Deep Dive" />
+        <SourceCard type="resource" title="Docker Compose" />
+      </SourceList>
+      <FollowUpQuestions />
+    </BotMessage>
+  </MessageList>
+  <ChatInput />
+  <ClearHistoryButton />
+</ChatInterface>
+```
+
+**State Management:**
+```typescript
+// app/(dashboard)/page.tsx
+interface Message {
+  role: 'user' | 'assistant'
+  content: string
+  sources?: Source[]
+  timestamp: Date
+}
+
+const [messages, setMessages] = useState<Message[]>([])
+
+const sendMessage = async (query: string) => {
+  // Add user message
+  const userMsg: Message = { role: 'user', content: query, timestamp: new Date() }
+  setMessages(prev => [...prev, userMsg])
+  
+  // Prepare context (last 10 messages, exclude sources)
+  const context = messages.slice(-10).map(m => ({
+    role: m.role,
+    content: m.content
+  }))
+  
+  // Call API with context
+  const response = await fetch('/api/query', {
+    method: 'POST',
+    body: JSON.stringify({ query, context })
+  })
+  
+  const data = await response.json()
+  
+  // Add bot response
+  const botMsg: Message = {
+    role: 'assistant',
+    content: data.answer,
+    sources: data.sources,
+    timestamp: new Date()
+  }
+  setMessages(prev => [...prev, botMsg])
+}
+
+const clearHistory = () => {
+  if (confirm('Clear chat history?')) {
+    setMessages([])
+  }
+}
+```
+
+**Source Card Component:**
+```typescript
+// components/source-card.tsx
+interface SourceCardProps {
+  source: {
+    type: 'lecture' | 'resource'
+    title: string
+    timestamp?: string
+    url?: string
+    snippet: string
+  }
+}
+
+export function SourceCard({ source }: SourceCardProps) {
+  return (
+    <div className="border rounded p-3 hover:bg-gray-50">
+      <div className="flex items-center gap-2 mb-2">
+        {source.type === 'lecture' ? (
+          <VideoIcon className="w-4 h-4" />
+        ) : (
+          <LinkIcon className="w-4 h-4" />
+        )}
+        <h4 className="font-semibold">{source.title}</h4>
+      </div>
+      
+      {source.timestamp && (
+        <button 
+          className="text-sm text-blue-600 hover:underline"
+          onClick={() => showTimestampModal(source)}
+        >
+          ⏱️ {source.timestamp}
+        </button>
+      )}
+      
+      <p className="text-sm text-gray-600 mt-2">{source.snippet}</p>
+    </div>
+  )
+}
+```
+
+**Success Criteria:**
+- ✅ Can type and submit query
+- ✅ Loading indicator while processing
+- ✅ Answer displays clearly
+- ✅ Sources formatted nicely (lecture vs resource)
+- ✅ **Source cards show title prominently**
+- ✅ Timestamps clickable (shows snippet modal)
+- ✅ **Follow-up questions work with context**
+- ✅ **Can clear chat history**
+- ✅ Works on mobile
+
+**Testing:**
+```typescript
+// Test context flow
+User: "How does Docker work?"
+Bot: "Docker is a containerization platform..." (with sources)
+
+User: "What about volumes?" ← No explicit Docker mention
+Bot: "Docker volumes persist data..." (understands Docker context)
+
+User: *clicks Clear History*
+User: "What about volumes?" ← Context lost
+Bot: "Please provide more context..." (asks for clarification)
+```
+
+**Commit Message:** `feat(ui): implement chat interface with context management and history clearing`
+
+---
+
+### TODO-5.2: Admin Upload Interface ⬜
+**Est. Time:** 1.5 hours  
+**Dependencies:** TODO-1.3, TODO-2.5  
+**Priority:** P0
+
+**Subtasks:**
+- [ ] 5.2.1: Create upload page (app/(admin)/upload/page.tsx)
+- [ ] 5.2.2: Build upload form with validation
+- [ ] 5.2.3: Add cohort/module dropdowns (fetch from API)
+- [ ] 5.2.4: Implement file upload
+- [ ] 5.2.5: Show processing progress (poll status endpoint)
+- [ ] 5.2.6: Redirect to lecture page when complete
+- [ ] 5.2.7: Add resource URL input section
+- [ ] 5.2.8: Test full flow
+
+**Form Fields:**
+```
+- Cohort (dropdown)
+- Module (dropdown, filtered by cohort)
+- Title (text input)
+- Instructor (text input)
+- Date (date picker)
+- VTT File (file upload)
+- Resources (optional, multiple URLs)
+```
+
+**Success Criteria:**
+- ✅ Form validates all required fields
+- ✅ Progress bar updates during processing
+- ✅ Can add multiple resource URLs
+- ✅ Error messages clear
+- ✅ Redirects to lecture summary on success
+
+**Commit Message:** `feat: implement admin upload interface with progress tracking`
+
+---
+
+### TODO-5.3: Lecture Summary View ⬜
+**Est. Time:** 1 hour  
+**Dependencies:** TODO-5.2  
+**Priority:** P1 (Optional for MVP)
+
+**Subtasks:**
+- [ ] 5.3.1: Create lecture detail page (app/(dashboard)/lectures/[id]/page.tsx)
+- [ ] 5.3.2: Fetch and display lecture summary
+- [ ] 5.3.3: Format timestamped sections
+- [ ] 5.3.4: Display tools mentioned
+- [ ] 5.3.5: Display linked resources
+- [ ] 5.3.6: Add "Ask about this lecture" button
+- [ ] 5.3.7: Style nicely
+
+**Success Criteria:**
+- ✅ Summary displays full structure
+- ✅ Timestamps formatted nicely
+- ✅ Resources listed with links
+- ✅ Can navigate to chat with lecture context
+
+**Commit Message:** `feat: implement lecture summary view with timestamps and resources`
+
+---
+
+## Phase 6: Integration & Polish (Hours 18-19) 🔗
+
+**Goal:** All pieces connected, working end-to-end.
+
+### TODO-6.1: End-to-End Testing ⬜
+**Est. Time:** 1 hour  
+**Dependencies:** All previous phases  
+**Priority:** P0
+
+**Subtasks:**
+- [ ] 6.1.1: Upload 5 sample lectures (different cohorts)
+- [ ] 6.1.2: Add 10 resources (mix of types)
+- [ ] 6.1.3: Test 20 queries (track accuracy)
+- [ ] 6.1.4: Test cohort isolation (student sees only their cohort)
+- [ ] 6.1.5: Test instructor multi-cohort access
+- [ ] 6.1.6: Test admin full access
+- [ ] 6.1.7: Fix critical bugs found
+
+**Test Scenarios:**
+```
+1. Student login → Query → See only their cohort's sources
+2. Upload lecture → Process → Query about it → Get results
+3. Add resource → Query mentions resource → Resource appears in sources
+4. Query with instructor name → Instructor's lectures ranked higher
+5. Technical query → Code-containing chunks ranked higher
+```
+
+**Success Criteria:**
+- ✅ 16/20 queries return useful answers
+- ✅ Cohort isolation works (no data leakage)
+- ✅ No breaking bugs
+- ✅ Performance within targets (< 5s queries)
+
+**Commit Message:** `test: end-to-end testing with 5 lectures and 20 queries`
+
+---
+
+### TODO-6.2: Error Handling & Edge Cases ⬜
+**Est. Time:** 45 mins  
+**Dependencies:** TODO-6.1  
+**Priority:** P0
+
+**Subtasks:**
+- [ ] 6.2.1: Add user-friendly error messages
+- [ ] 6.2.2: Handle API rate limits gracefully
+- [ ] 6.2.3: Handle malformed VTT files
+- [ ] 6.2.4: Handle scraping failures
+- [ ] 6.2.5: Add loading states everywhere
+- [ ] 6.2.6: Test error scenarios
+
+**Error Scenarios to Test:**
+- VTT file with missing timestamps
+- Invalid resource URL
+- OpenRouter rate limit hit
+- Supabase connection failure
+- User not assigned to any cohort
+
+**Success Criteria:**
+- ✅ No unhandled exceptions
+- ✅ Error messages help user understand what went wrong
+- ✅ System recovers gracefully from failures
+
+**Commit Message:** `fix: improve error handling and edge case coverage`
+
+---
+
+## Phase 7: Deployment & Demo Prep (Hour 20) 🚀
+
+**Goal:** Deployed to production, demo ready.
+
+### TODO-7.1: Deploy to Vercel ⬜
+**Est. Time:** 30 mins  
+**Dependencies:** TODO-6.2  
+**Priority:** P0
+
+**Subtasks:**
+- [ ] 7.1.1: Connect GitHub repo to Vercel
+- [ ] 7.1.2: Configure environment variables in Vercel
+- [ ] 7.1.3: Deploy to production
+- [ ] 7.1.4: Test in production environment
+- [ ] 7.1.5: Fix deployment issues if any
+- [ ] 7.1.6: Verify all features work in production
+
+**Deployment Checklist:**
+```
+- Environment variables set
+- Database connected
+- OpenRouter API key configured
+- Supabase configured
+- VTT uploads work
+- Queries work
+- Auth works
+```
+
+**Success Criteria:**
+- ✅ App deployed and accessible
+- ✅ All features work in production
+- ✅ No console errors
+- ✅ Performance acceptable
+
+**Commit Message:** `deploy: initial production deployment to Vercel`
+
+---
+
+### TODO-7.2: Demo Preparation ⬜
+**Est. Time:** 30 mins  
+**Dependencies:** TODO-7.1  
+**Priority:** P0
+
+**Subtasks:**
+- [ ] 7.2.1: Record backup demo video (3-5 mins)
+- [ ] 7.2.2: Prepare demo script
+- [ ] 7.2.3: Test demo flow 3 times
+- [ ] 7.2.4: Clear browser cache/cookies before demo
+- [ ] 7.2.5: Have backup plan ready
+- [ ] 7.2.6: Document known limitations
+
+**Demo Script (5 mins):**
+```
+1. Introduction (30s): Problem + Solution
+2. Student View (2 mins):
+   - Login as student
+   - Ask: "How do Docker volumes work?"
+   - Show answer with timestamped sources
+   - Click timestamp → Show snippet
+3. Admin View (1.5 mins):
+   - Switch to admin account
+   - Upload new VTT file
+   - Show processing progress
+   - Add resource URL
+4. Instructor View (30s):
+   - Show multi-cohort access
+5. Wrap-up (30s): Roadmap, Q&A
+```
+
+**Success Criteria:**
+- ✅ Demo script under 5 minutes
+- ✅ All demo features work
+- ✅ Backup video ready
+- ✅ Known limitations documented
+
+**Commit Message:** `docs: add demo preparation checklist and script`
+
+---
+
+## Critical Path
+
+**Must Complete for Working Demo:**
+1. TODO-1.1 → 1.2 → 1.3 (Foundation)
+2. TODO-2.1 → 2.2 → 2.3 → 2.5 (VTT Pipeline)
+3. TODO-4.1 → 4.2 → 4.3 (RAG)
+4. TODO-5.1 (Chat UI)
+5. TODO-5.2 (Admin Upload)
+6. TODO-6.1 (E2E Testing)
+7. TODO-7.1 → 7.2 (Deploy & Demo)
+
+**Can Be Simplified/Cut if Time Runs Out:**
+- TODO-3.x (Resource scraping - use manual URLs)
+- TODO-4.4 (Follow-up questions)
+- TODO-5.3 (Lecture summary view - show via chat instead)
+
+---
+
+## Parallel Work Opportunities
+
+**Can Work Simultaneously:**
+- Phase 2 (VTT) and Phase 3 (Resources) are independent
+- Phase 5 (UI) can start once Phase 4 APIs are defined (mock initially)
+
+**Sequential Dependencies:**
+- Must finish Phase 1 before anything else
+- Must finish Phase 2 & 3 before Phase 4
+- Must finish Phase 4 before Phase 5 (unless mocking)
+
+---
+
+## Testing Checklist
+
+**After Each TODO:**
+- [ ] Unit tests pass (if applicable)
+- [ ] Manual testing successful
+- [ ] No console errors
+- [ ] Git commit with conventional message
+- [ ] Update progress in this document
+
+**# Master TODO List - Implementation Plan
+## Cohort Lecture Assistant
+
+**Project Duration:** 20 hours (estimated)  
+**Last Updated:** January 2025  
+**Progress:** 0/42 tasks complete (0%)
+
+---
+
+## Progress Tracking
+
+**Phase 1: Foundation** ⬜ 0/9 tasks  
+**Phase 2: VTT Processing** ⬜ 0/8 tasks  
+**Phase 3: Resource Scraping** ⬜ 0/6 tasks  
+**Phase 4: RAG Implementation** ⬜ 0/7 tasks  
+**Phase 5: UI Development** ⬜ 0/6 tasks  
+**Phase 6: Integration** ⬜ 0/4 tasks  
+**Phase 7: Testing & Deploy** ⬜ 0/2 tasks  
+
+---
+
+## Dependency Graph
+
+```mermaid
+graph TD
+    P1[Phase 1: Foundation] --> P2[Phase 2: VTT Processing]
+    P1 --> P3[Phase 3: Resource Scraping]
+    P2 --> P4[Phase 4: RAG Implementation]
+    P3 --> P4
+    P4 --> P5[Phase 5: UI Development]
+    P5 --> P6[Phase 6: Integration]
+    P6 --> P7[Phase 7: Testing & Deploy]
+    
+    T1.1[Setup Project] --> T1.2[Database Schema]
+    T1.2 --> T1.3[Auth Setup]
+    T1.3 --> T2.1[VTT Parser]
+    T2.1 --> T2.2[Chunking]
+    T2.2 --> T2.3[Embeddings]
+    T2.3 --> T4.1[RAG Setup]
+```

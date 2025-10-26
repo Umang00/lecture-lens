@@ -1,0 +1,2779 @@
+### Error Handling
+```typescript
+// ✅ Good: Specific error types, user-friendly messages
+try {
+  const result = await riskyOperation()
+  return result
+} catch (error) {
+  if (error instanceof RateLimitError) {
+    throw new Error('Too many requests. Please wait 1 minute and try again.')
+  }
+  console.error('[Context]', error)
+  throw new Error('Operation failed. Please try again.')
+}
+
+// ❌ Bad: Generic catch-all, no context
+try {
+  const result = await riskyOperation()
+  return result
+} catch (error) {
+  console.log(error)
+  throw error
+}
+```
+
+### VTT## Priority Reminders
+
+1. **Working > Perfect**: Ship MVP, refine later
+2. **Test as you go**: Don't accumulate testing debt
+3. **Document as you build**: Update docs with each feature
+4. **Commit frequently**: Small, atomic commits with clear messages
+5. **Focus on P0**: Don't get distracted by nice-to-haves
+6. **Real data first**: Always prompt for real VTT files before using demo
+7. **Context matters**: Follow-up questions should work naturally
+8. **Titles boost relevance**: Include in metadata for better ranking
+
+---
+
+## Quick Reference Commands
+
+### Development
+```bash
+npm run dev              # Start dev server
+npm run build            # Production build
+npm run lint             # ESLint check
+npm run type-check       # TypeScript check
+npm run seed             # Seed database (prompts for real data)
+```
+
+### Database
+```bash
+supabase db push         # Apply migrations
+supabase db pull         # Pull remote schema
+supabase gen types typescript --local > types/database.ts
+```
+
+### Testing
+```bash
+npm run test             # Run unit tests
+npm run test:watch       # Watch mode
+npm run test:e2e         # End-to-end tests
+npm run test:coverage    # Coverage report
+```
+
+### Deployment
+```bash
+git push origin main     # Auto-deploys to Vercel
+vercel --prod            # Manual production deploy
+vercel logs              # View production logs
+```
+
+---
+
+## File Organization Rules
+
+### Module Structure
+```
+lib/[module]/
+├── index.ts           # Public API exports
+├── types.ts           # TypeScript interfaces
+├── [feature].ts       # Implementation
+├── [feature].test.ts  # Tests
+└── utils.ts           # Helper functions
+```
+
+### Example: VTT Module
+```
+lib/vtt/
+├── index.ts           # export { parseVTT, chunkVTT }
+├── types.ts           # VTTSegment, Chunk interfaces
+├── parser.ts          # parseVTT implementation
+├── parser.test.ts     # Parser tests
+├── chunker.ts         # chunkVTT implementation
+├── chunker.test.ts    # Chunker tests
+├── intro-detector.ts  # findLectureStart
+└── timestamp-utils.ts # Time conversion helpers
+```
+
+### Import Aliases
+```typescript
+// ✅ Good: Use path aliases
+import { parseVTT } from '@/lib/vtt'
+import { Button } from '@/components/ui/button'
+import type { Lecture } from '@/types/database'
+
+// ❌ Bad: Relative imports
+import { parseVTT } from '../../../lib/vtt'
+import { Button } from '../../components/ui/button'
+```
+
+---
+
+## Environment Variable Management
+
+### .env.local (Development)
+```bash
+# Supabase
+SUPABASE_URL=https://xxxxx.supabase.co
+SUPABASE_ANON_KEY=eyJxxx...
+SUPABASE_SERVICE_ROLE_KEY=eyJxxx...
+
+# OpenRouter
+OPENROUTER_API_KEY=sk-or-xxx...
+
+# Optional: Resource Scraping
+GITHUB_TOKEN=ghp_xxx...
+
+# Optional: Analytics (post-MVP)
+NEXT_PUBLIC_ANALYTICS_ID=xxx
+```
+
+### .env.example (Committed to repo)
+```bash
+# Copy this to .env.local and fill in your values
+
+SUPABASE_URL=
+SUPABASE_ANON_KEY=
+SUPABASE_SERVICE_ROLE_KEY=
+
+OPENROUTER_API_KEY=
+
+# Optional
+GITHUB_TOKEN=
+```
+
+### Vercel Environment Variables
+Set in Vercel dashboard → Project Settings → Environment Variables:
+- Mark sensitive vars as "Secret"
+- Set for Production, Preview, and Development
+- Never commit actual values to Git
+
+---
+
+## Naming Conventions Reference
+
+### Database (snake_case)
+```
+Tables:      knowledge_chunks, lecture_resources
+Columns:     cohort_id, created_at, is_global
+Functions:   search_knowledge, update_timestamp
+```
+
+### TypeScript (camelCase/PascalCase)
+```
+Interfaces:  LectureSummary, VTTSegment, ChatResponse
+Types:       ChunkingConfig, RankingFactors
+Functions:   parseVTT, generateEmbeddings, queryKnowledge
+Variables:   cohortId, isLoading, startTime
+Constants:   API_BASE_URL, MAX_CHUNK_SIZE
+```
+
+### React (PascalCase)
+```
+Components:  ChatInterface, SourceCard, MessageList
+Hooks:       useAuth, useChatHistory, useDebounce
+Contexts:    ChatContext, AuthContext
+```
+
+### Files (kebab-case)
+```
+Files:       vtt-parser.ts, query-engine.ts, auth-middleware.ts
+Components:  chat-interface.tsx, source-card.tsx
+Tests:       vtt-parser.test.ts, api.test.ts
+```
+
+---
+
+## Git Workflow
+
+### Branch Strategy
+```
+main        - Production (auto-deploys)
+dev         - Development (staging)
+feature/*   - Feature branches (optional for solo)
+```
+
+### Commit Message Format
+```
+<type>(<scope>): <subject>
+
+Types: feat, fix, docs, test, chore, refactor, style, perf
+Scope: vtt, rag, api, ui, db (optional)
+Subject: Imperative, lowercase, no period
+
+Examples:
+feat(vtt): implement semantic chunking with overlap
+fix(api): handle rate limit errors gracefully
+docs: update README with setup instructions
+test(rag): add unit tests for hybrid ranking
+chore: update dependencies to latest versions
+```
+
+### Commit Frequency
+```
+✅ Good: Commit after each logical unit of work
+- feat: implement VTT parser
+- test: add VTT parser tests
+- docs: document VTT parser API
+
+❌ Bad: Single commit for entire feature
+- feat: implement entire VTT processing pipeline
+```
+
+---
+
+## Troubleshooting Quick Guide
+
+### "Type error in Supabase query"
+```typescript
+// Problem: Type mismatch
+const { data } = await supabase.from('lectures').select('*')
+// data is 'any'
+
+// Solution: Regenerate types
+supabase gen types typescript --local > types/database.ts
+
+// Then import and use
+import type { Database } from '@/types/database'
+const { data } = await supabase.from('lectures').select<'*', Lecture>('*')
+```
+
+### "RLS policy blocking query"
+```typescript
+// Problem: Query returns empty despite data existing
+const { data } = await supabase.from('lectures').select('*')
+// data is []
+
+// Solution 1: Check user has cohort assignment
+const { data: userCohorts } = await supabase
+  .from('user_cohorts')
+  .select('*')
+  .eq('user_id', user.id)
+// If empty, assign user to cohort
+
+// Solution 2: Temporarily disable RLS to test
+// In Supabase SQL editor:
+ALTER TABLE lectures DISABLE ROW LEVEL SECURITY;
+// Run query, then re-enable
+ALTER TABLE lectures ENABLE ROW LEVEL SECURITY;
+```
+
+### "OpenRouter rate limit"
+```typescript
+// Problem: 429 Too Many Requests
+Error: Rate limit exceeded
+
+// Solution 1: Increase batch wait time
+await sleep(5000) // 5 seconds instead of 4
+
+// Solution 2: Implement exponential backoff
+async function withRetry(fn, maxRetries = 3) {
+  for (let i = 0; i < maxRetries; i++) {
+    try {
+      return await fn()
+    } catch (error) {
+      if (error.status === 429 && i < maxRetries - 1) {
+        await sleep(Math.pow(2, i) * 1000)
+        continue
+      }
+      throw error
+    }
+  }
+}
+```
+
+### "Vector search returns no results"
+```typescript
+// Problem: search_knowledge RPC returns empty
+const { data } = await supabase.rpc('search_knowledge', { ... })
+// data is []
+
+// Debug steps:
+// 1. Check embeddings exist
+const { count } = await supabase
+  .from('knowledge_chunks')
+  .select('*', { count: 'exact', head: true })
+console.log('Total chunks:', count) // Should be > 0
+
+// 2. Check vector index exists
+// In Supabase SQL editor:
+SELECT indexname FROM pg_indexes WHERE tablename = 'knowledge_chunks';
+// Should show ivfflat index
+
+// 3. Lower similarity threshold
+const { data } = await supabase.rpc('search_knowledge', {
+  match_threshold: 0.5 // Lower from 0.7
+})
+```
+
+### "Vercel deployment fails"
+```bash
+# Problem: Build fails on Vercel
+
+# Check 1: Build locally
+npm run build
+# Fix any errors shown
+
+# Check 2: Verify environment variables
+# In Vercel dashboard, ensure all env vars are set
+
+# Check 3: Check build logs
+vercel logs <deployment-url>
+
+# Common fixes:
+# - Missing dependencies: npm install <package>
+# - Type errors: npm run type-check
+# - ESLint errors: npm run lint -- --fix
+```
+
+---
+
+## Final Pre-Demo Checklist
+
+**24 Hours Before Demo:**
+- [ ] All P0 features working in production
+- [ ] Real or demo data loaded (5 lectures, 10 resources)
+- [ ] Test accounts created and working
+- [ ] Demo script written and rehearsed
+- [ ] Backup video recorded
+- [ ] Known bugs documented
+
+**1 Hour Before Demo:**
+- [ ] Test demo flow end-to-end (3 times)
+- [ ] Clear browser cache and cookies
+- [ ] Login to all test accounts
+- [ ] Check OpenRouter quota (> 50% remaining)
+- [ ] Verify production environment stable
+- [ ] Close unnecessary apps/tabs
+
+**Go-Live Checklist:**
+- [ ] Laptop fully charged
+- [ ] Backup internet ready (phone hotspot)
+- [ ] Demo tabs open and ready
+- [ ] Notifications disabled
+- [ ] Backup video accessible
+- [ ] Timer ready (5-minute limit)
+
+---
+
+## Remember
+
+1. **MVP mindset**: Working demo > perfect code
+2. **Test continuously**: Don't accumulate testing debt
+3. **Commit often**: Small, clear commits
+4. **Ask for help**: Don't waste time stuck
+5. **Focus on P0**: Resist feature creep
+6. **Document as you go**: Future you will thank you
+7. **Celebrate progress**: Each TODO complete is a win
+8. **Real data first**: Always prompt before using demo
+9. **Context matters**: Follow-ups should work naturally
+10. **Titles help**: Include in metadata for better search
+
+---
+
+**Good luck! You've got this.** 🚀
+
+---
+
+## Additional Resources
+
+**Project Documentation:**
+- `docs/PRD.md` - Product requirements
+- `docs/TECHNICAL_ARCHITECTURE.md` - System design
+- `docs/DATABASE_API_SPEC.md` - Schema and endpoints
+- `docs/MASTER_TODO.md` - Implementation plan
+
+**External Docs:**
+- LlamaIndex: https://docs.llamaindex.ai
+- Supabase: https://supabase.com/docs
+- Next.js: https://nextjs.org/docs
+- OpenRouter: https://openrouter.ai/docs
+- youtube-transcript: https://www.npmjs.com/package/youtube-transcript
+
+**Community:**
+- 100x Engineers Discord
+- Cursor Discord
+- Stack Overflow
+
+---
+
+**Last Updated:** January 2025  
+**Version:** 2.0 (Complete with all patterns and best practices)Document as you build**: Update docs with each feature
+4. **Commit frequently**: Small, atomic commits with clear messages
+5. **Focus on P0**: Don't get distracted by nice-to-haves
+
+---
+
+## Quick Reference Commands
+
+### Development
+```bash
+npm run dev              # Start dev server
+npm run build            # Production build
+npm run lint             # ESLint check
+npm run type-check       # TypeScript check
+```
+
+### Database
+```bash
+supabase db push         # Apply migrations
+supabase db pull         # Pull remote schema
+supabase gen types typescript --local > types/database.ts
+```
+
+### Testing
+```bash
+npm run test             # Run unit tests
+npm run test:watch       # Watch mode
+npm run test:e2e         # End-to-end tests
+npm run test:coverage    # Coverage report
+```
+
+### Deployment
+```bash
+git push origin main     # Auto-deploys to Vercel
+vercel --prod            # Manual production deploy
+vercel logs              # View production logs
+```
+
+---
+
+## File Organization Rules
+
+### Module Structure
+```
+lib/[module]/
+├── index.ts           # Public API exports
+├── types.ts           # TypeScript interfaces
+├── [feature].ts       # Implementation
+├── [feature].test.ts  # Tests
+└── utils.ts           # Helper functions
+```
+
+### Example: VTT Module
+```
+lib/vtt/
+├── index.ts           # export { parseVTT, chunkVTT }
+├── types.ts           # VTTSegment, Chunk interfaces
+├── parser.ts          # parseVTT implementation
+├── parser.test.ts     # Parser tests
+├── chunker.ts         # chunkVTT implementation
+├── chunker.test.ts    # Chunker tests
+├── intro-detector.ts  # findLectureStart
+└── timestamp-utils.ts # Time conversion helpers
+```
+
+### Import Aliases
+```typescript
+// ✅ Good: Use path aliases
+import { parseVTT } from '@/lib/vtt'
+import { Button } from '@/components/ui/button'
+import type { Lecture } from '@/types/database'
+
+// ❌ Bad: Relative imports
+import { parseVTT } from '../../../lib/vtt'
+import { Button } from '../../components/ui/button'
+```
+
+---
+
+## Environment Variable Management
+
+### .env.local (Development)
+```bash
+# Supabase
+SUPABASE_URL=https://xxxxx.supabase.co
+SUPABASE_ANON_KEY=eyJxxx...
+SUPABASE_SERVICE_ROLE_KEY=eyJxxx...
+
+# OpenRouter
+OPENROUTER_API_KEY=sk-or-xxx...
+
+# Optional: Resource Scraping
+GITHUB_TOKEN=ghp_xxx...
+
+# Optional: Analytics (post-MVP)
+NEXT_PUBLIC_ANALYTICS_ID=xxx
+```
+
+### .env.example (Committed to repo)
+```bash
+# Copy this to .env.local and fill in your values
+
+SUPABASE_URL=
+SUPABASE_ANON_KEY=
+SUPABASE_SERVICE_ROLE_KEY=
+
+OPENROUTER_API_KEY=
+
+# Optional
+GITHUB_TOKEN=
+```
+
+### Vercel Environment Variables
+Set in Vercel dashboard → Project Settings → Environment Variables:
+- Mark sensitive vars as "Secret"
+- Set for Production, Preview, and Development
+- Never commit actual values to Git
+
+---
+
+## Naming Conventions Reference
+
+### Database (snake_case)
+```
+Tables:      knowledge_chunks, lecture_resources
+Columns:     cohort_id, created_at, is_global
+Functions:   search_knowledge, update_timestamp
+```
+
+### TypeScript (camelCase/PascalCase)
+```
+Interfaces:  LectureSummary, VTTSegment, ChatResponse
+Types:       ChunkingConfig, RankingFactors
+Functions:   parseVTT, generateEmbeddings, queryKnowledge
+Variables:   cohortId, isLoading, startTime
+Constants:   API_BASE_URL, MAX_CHUNK_SIZE
+```
+
+### React (PascalCase)
+```
+Components:  ChatInterface, SourceCard, MessageList
+Hooks:       useAuth, useChatHistory, useDebounce
+Contexts:    ChatContext, AuthContext
+```
+
+### Files (kebab-case)
+```
+Files:       vtt-parser.ts, query-engine.ts, auth-middleware.ts
+Components:  chat-interface.tsx, source-card.tsx
+Tests:       vtt-parser.test.ts, api.test.ts
+```
+
+---
+
+## Git Workflow
+
+### Branch Strategy
+```
+main        - Production (auto-deploys)
+dev         - Development (staging)
+feature/*   - Feature branches (optional for solo)
+```
+
+### Commit Message Format
+```
+<type>(<scope>): <subject>
+
+Types: feat, fix, docs, test, chore, refactor, style, perf
+Scope: vtt, rag, api, ui, db (optional)
+Subject: Imperative, lowercase, no period
+
+Examples:
+feat(vtt): implement semantic chunking with overlap
+fix(api): handle rate limit errors gracefully
+docs: update README with setup instructions
+test(rag): add unit tests for hybrid ranking
+chore: update dependencies to latest versions
+```
+
+### Commit Frequency
+```
+✅ Good: Commit after each logical unit of work
+- feat: implement VTT parser
+- test: add VTT parser tests
+- docs: document VTT parser API
+
+❌ Bad: Single commit for entire feature
+- feat: implement entire VTT processing pipeline
+```
+
+---
+
+## Code Review Checklist
+
+Before marking TODO as complete:
+
+### Functionality
+- [ ] Feature works as specified in PRD
+- [ ] Edge cases handled gracefully
+- [ ] Error messages user-friendly
+- [ ] No console errors in browser
+
+### Code Quality
+- [ ] No TypeScript errors
+- [ ] All tests pass
+- [ ] No code smells (deeply nested logic, long functions)
+- [ ] Follows project conventions
+
+### Performance
+- [ ] No unnecessary re-renders
+- [ ] Database queries optimized
+- [ ] Large operations batched
+- [ ] API responses < 5s
+
+### Security
+- [ ] User input validated
+- [ ] Auth checks in place
+- [ ] No sensitive data exposed
+- [ ] RLS policies tested
+
+### Documentation
+- [ ] Complex logic commented
+- [ ] API changes documented
+- [ ] README updated if needed
+- [ ] TODO marked as complete
+
+---
+
+## Troubleshooting Quick Guide
+
+### "Type error in Supabase query"
+```typescript
+// Problem: Type mismatch
+const { data } = await supabase.from('lectures').select('*')
+// data is 'any'
+
+// Solution: Regenerate types
+supabase gen types typescript --local > types/database.ts
+
+// Then import and use
+import type { Database } from '@/types/database'
+const { data } = await supabase.from('lectures').select<'*', Lecture>('*')
+```
+
+### "RLS policy blocking query"
+```typescript
+// Problem: Query returns empty despite data existing
+const { data } = await supabase.from('lectures').select('*')
+// data is []
+
+// Solution 1: Check user has cohort assignment
+const { data: userCohorts } = await supabase
+  .from('user_cohorts')
+  .select('*')
+  .eq('user_id', user.id)
+// If empty, assign user to cohort
+
+// Solution 2: Temporarily disable RLS to test
+// In Supabase SQL editor:
+ALTER TABLE lectures DISABLE ROW LEVEL SECURITY;
+// Run query, then re-enable
+ALTER TABLE lectures ENABLE ROW LEVEL SECURITY;
+```
+
+### "OpenRouter rate limit"
+```typescript
+// Problem: 429 Too Many Requests
+Error: Rate limit exceeded
+
+// Solution 1: Increase batch wait time
+await sleep(5000) // 5 seconds instead of 4
+
+// Solution 2: Implement exponential backoff
+async function withRetry(fn, maxRetries = 3) {
+  for (let i = 0; i < maxRetries; i++) {
+    try {
+      return await fn()
+    } catch (error) {
+      if (error.status === 429 && i < maxRetries - 1) {
+        await sleep(Math.pow(2, i) * 1000)
+        continue
+      }
+      throw error
+    }
+  }
+}
+```
+
+### "Vector search returns no results"
+```typescript
+// Problem: search_knowledge RPC returns empty
+const { data } = await supabase.rpc('search_knowledge', { ... })
+// data is []
+
+// Debug steps:
+// 1. Check embeddings exist
+const { count } = await supabase
+  .from('knowledge_chunks')
+  .select('*', { count: 'exact', head: true })
+console.log('Total chunks:', count) // Should be > 0
+
+// 2. Check vector index exists
+// In Supabase SQL editor:
+SELECT indexname FROM pg_indexes WHERE tablename = 'knowledge_chunks';
+// Should show ivfflat index
+
+// 3. Lower similarity threshold
+const { data } = await supabase.rpc('search_knowledge', {
+  match_threshold: 0.5 // Lower from 0.7
+})
+```
+
+### "Vercel deployment fails"
+```bash
+# Problem: Build fails on Vercel
+
+# Check 1: Build locally
+npm run build
+# Fix any errors shown
+
+# Check 2: Verify environment variables
+# In Vercel dashboard, ensure all env vars are set
+
+# Check 3: Check build logs
+vercel logs <deployment-url>
+
+# Common fixes:
+# - Missing dependencies: npm install <package>
+# - Type errors: npm run type-check
+# - ESLint errors: npm run lint -- --fix
+```
+
+---
+
+## Performance Optimization Patterns
+
+### Database Query Optimization
+```typescript
+// ❌ Bad: N+1 query pattern
+const lectures = await getLectures()
+for (const lecture of lectures) {
+  const resources = await getResourcesForLecture(lecture.id)
+  // Queries DB N times
+}
+
+// ✅ Good: Single query with JOIN
+const lectures = await supabase
+  .from('lectures')
+  .select(`
+    *,
+    resources:lecture_resources(
+      resource:resources(*)
+    )
+  `)
+// Single query fetches everything
+```
+
+### React Rendering Optimization
+```typescript
+// ❌ Bad: Unnecessary re-renders
+function ChatInterface() {
+  const [messages, setMessages] = useState([])
+  
+  const sendMessage = async (text) => {
+    const response = await fetch('/api/query', { ... })
+    setMessages([...messages, response])
+  }
+  
+  return <MessageList messages={messages} onSend={sendMessage} />
+  // sendMessage recreated every render
+}
+
+// ✅ Good: Memoized callback
+function ChatInterface() {
+  const [messages, setMessages] = useState([])
+  
+  const sendMessage = useCallback(async (text) => {
+    const response = await fetch('/api/query', { ... })
+    setMessages(prev => [...prev, response])
+  }, []) // Empty deps - stable reference
+  
+  return <MessageList messages={messages} onSend={sendMessage} />
+}
+```
+
+### API Response Optimization
+```typescript
+// ❌ Bad: Send entire objects
+return NextResponse.json({
+  sources: fullLectureObjects // 100KB+ of data
+})
+
+// ✅ Good: Send only needed fields
+return NextResponse.json({
+  sources: lectures.map(l => ({
+    id: l.id,
+    title: l.title,
+    timestamp: l.timestamp,
+    snippet: l.text.slice(0, 200)
+  }))
+})
+```
+
+---
+
+## Security Best Practices
+
+### Authentication
+```typescript
+// ✅ Always verify token server-side
+export async function GET(req: NextRequest) {
+  const { user, error } = await authenticate(req)
+  if (error) return NextResponse.json({ error }, { status: 401 })
+  // Proceed with authenticated user
+}
+
+// ❌ Never trust client-side claims
+export async function GET(req: NextRequest) {
+  const userId = req.headers.get('x-user-id') // Client can fake this
+  // INSECURE
+}
+```
+
+### Input Validation
+```typescript
+// ✅ Validate and sanitize all inputs
+const schema = z.object({
+  query: z.string()
+    .min(1, 'Query required')
+    .max(500, 'Query too long')
+    .regex(/^[a-zA-Z0-9\s\?\.\-]+$/, 'Invalid characters'),
+  lectureId: z.string().uuid().optional()
+})
+
+const validated = schema.parse(req.body)
+
+// ❌ Use input directly
+const { query } = req.body
+await searchLectures(query) // Could be injection attack
+```
+
+### Secrets Management
+```typescript
+// ✅ Server-side only
+// app/api/route.ts (server component)
+const apiKey = process.env.OPENROUTER_API_KEY
+
+// ❌ Client-side exposure
+// components/Chat.tsx (client component)
+const apiKey = process.env.NEXT_PUBLIC_API_KEY // Exposed to browser
+```
+
+---
+
+## Final Checklist Before Demo
+
+### 24 Hours Before
+- [ ] All P0 features working in production
+- [ ] Demo data loaded (5 lectures, 10 resources)
+- [ ] Test accounts created and working
+- [ ] Demo script written and rehearsed
+- [ ] Backup video recorded
+- [ ] Known bugs documented
+
+### 1 Hour Before
+- [ ] Test demo flow end-to-end (3 times)
+- [ ] Clear browser cache and cookies
+- [ ] Login to all test accounts
+- [ ] Check OpenRouter quota (> 50% remaining)
+- [ ] Verify production environment stable
+- [ ] Close unnecessary apps/tabs
+
+### Go-Live Checklist
+- [ ] Laptop fully charged
+- [ ] Backup internet ready (phone hotspot)
+- [ ] Demo tabs open and ready
+- [ ] Notifications disabled
+- [ ] Backup video accessible
+- [ ] Timer ready (5-minute limit)
+
+---
+
+## Post-Demo Actions
+
+### Immediate (Within 1 Hour)
+- [ ] Collect feedback from judges
+- [ ] Note bugs discovered during demo
+- [ ] Thank collaborators/mentors
+- [ ] Share demo video link
+
+### Next Steps (Week 1)
+- [ ] Prioritize feedback for implementation
+- [ ] Fix critical bugs found
+- [ ] Add resource auto-scraping (if skipped)
+- [ ] Improve query accuracy based on testing
+- [ ] Document lessons learned
+
+---
+
+## Remember
+
+1. **MVP mindset**: Working demo > perfect code
+2. **Test continuously**: Don't accumulate testing debt
+3. **Commit often**: Small, clear commits
+4. **Ask for help**: Don't waste time stuck
+5. **Focus on P0**: Resist feature creep
+6. **Document as you go**: Future you will thank you
+7. **Celebrate progress**: Each TODO complete is a win
+
+---
+
+**Good luck! You've got this.** 🚀
+
+---
+
+## Additional Resources
+
+**Project Documentation:**
+- `docs/PRD.md` - Product requirements
+- `docs/TECHNICAL_ARCHITECTURE.md` - System design
+- `docs/DATABASE_API_SPEC.md` - Schema and endpoints
+- `docs/MASTER_TODO.md` - Implementation plan
+
+**External Docs:**
+- LlamaIndex: https://docs.llamaindex.ai
+- Supabase: https://supabase.com/docs
+- Next.js: https://nextjs.org/docs
+- OpenRouter: https://openrouter.ai/docs
+
+**Community:**
+- 100x Engineers Discord
+- Cursor Discord
+- Stack Overflow
+
+---
+
+**Last Updated:** January 2025  
+**Version:** 1.0# Cursor Rules - Cohort Lecture Assistant
+
+## Project Overview
+Building an AI-powered chat interface that makes lecture content searchable via RAG. Students ask questions, get answers with timestamped citations from lectures and auto-scraped resources.
+
+**Tech Stack:** Next.js 14, TypeScript, Supabase (PostgreSQL + pgvector), LlamaIndex, OpenRouter (Gemini + OpenAI embeddings)
+
+**Timeline:** 20 hours MVP  
+**Priority:** Functionality > Perfection
+
+---
+
+## Core Principles
+
+1. **Library First, Custom Last**
+   - Use existing libraries (LlamaIndex, webvtt-parser, Octokit)
+   - Only write custom code when no good library exists
+   - Example: Use `date-fns` not custom date parsers
+
+2. **Type Safety Always**
+   - Strict TypeScript mode enabled
+   - All functions have explicit return types
+   - Use Zod for runtime validation
+   - Generate types from Supabase schema
+
+3. **No Code Without Tests**
+   - Write test alongside feature
+   - Unit tests for utilities and parsers
+   - Integration tests for API routes
+   - E2E tests for critical flows
+
+4. **Performance Matters**
+   - Target: < 5s query responses
+   - Batch operations (embeddings, DB inserts)
+   - Use indexes, avoid N+1 queries
+   - Respect API rate limits (15 RPM OpenRouter)
+
+5. **Security by Default**
+   - Never expose API keys client-side
+   - All routes require authentication
+   - RLS policies enforce cohort isolation
+   - Validate all user inputs with Zod
+
+---
+
+## Code Style
+
+### File Naming
+```
+kebab-case for files:    vtt-parser.ts ✅    VTTParser.ts ❌
+PascalCase for components: ChatInterface.tsx ✅  chatInterface.tsx ❌
+camelCase for functions:   parseVTT() ✅      ParseVTT() ❌
+```
+
+### TypeScript Conventions
+```typescript
+// ✅ Good: Explicit types, descriptive names
+export async function parseVTT(content: string): Promise<VTTSegment[]> {
+  const segments: VTTSegment[] = []
+  // ...
+  return segments
+}
+
+// ❌ Bad: Implicit types, vague names
+export async function parse(c) {
+  const s = []
+  return s
+}
+
+// ✅ Good: Interface over type for extensibility
+interface LectureSummary {
+  title: string
+  sections: Section[]
+}
+
+// ❌ Bad: Type alias for complex objects
+type LectureSummary = {
+  title: string
+  sections: Section[]
+}
+```
+
+### VTT Parsing Patterns
+```typescript
+// ✅ Good: Skip sequence numbers, keep numbers in speech
+function parseVTT(content: string): VTTSegment[] {
+  const lines = content.split('\n')
+  const segments: VTTSegment[] = []
+  
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim()
+    
+    // Skip sequence numbers (lines with ONLY digits)
+    if (/^\d+$/.test(line)) {
+      continue // Skip lines like "1", "2", "3"
+    }
+    
+    // Parse timestamps
+    if (line.includes('-->')) {
+      const [start, end] = line.split(' --> ')
+      const textLines = []
+      i++ // Move to text line
+      
+      // Collect text (may span multiple lines)
+      while (i < lines.length && lines[i].trim() && !/^\d+$/.test(lines[i])) {
+        textLines.push(lines[i].trim())
+        i++
+      }
+      
+      segments.push({
+        startTime: start,
+        endTime: end,
+        text: textLines.join(' ') // "step 1 is important" preserved
+      })
+    }
+  }
+  
+  return segments
+}
+
+// ❌ Bad: Removes all numbers (including "step 1", "chapter 2")
+function parseVTT(content: string) {
+  return content.replace(/\d+/g, '') // Removes ALL numbers
+}
+```
+
+### Intro Detection (10 Minutes)
+```typescript
+// ✅ Good: 10 minute fallback
+export function findLectureStart(segments: VTTSegment[]): number {
+  const keywords = ['today', 'we\'ll cover', 'let\'s start', 'agenda']
+  
+  // Strategy 1: Keyword detection
+  for (let i = 0; i < Math.min(segments.length, 20); i++) {
+    const text = segments[i].text.toLowerCase()
+    if (keywords.some(kw => text.includes(kw)) && text.length > 50) {
+      return i
+    }
+  }
+  
+  // Strategy 2: Skip first 10 minutes
+  const tenMinutes = 10 * 60 // 600 seconds
+  for (let i = 0; i < segments.length; i++) {
+    const timeInSecs = timestampToSeconds(segments[i].startTime)
+    if (timeInSecs > tenMinutes && segments[i].text.length > 100) {
+      return i // Start after 10 mins with substantive content
+    }
+  }
+  
+  return 0 // Fallback: start from beginning
+}
+
+// ❌ Bad: 5 minute fallback (too early for typical lectures)
+const fiveMinutes = 5 * 60 // Intro often longer than 5 mins
+```
+
+### YouTube Transcript Extraction
+```typescript
+// ✅ Good: Use youtube-transcript library
+import { YoutubeTranscript } from 'youtube-transcript'
+
+export async function scrapeYouTube(url: string): Promise<ScrapedContent> {
+  const videoId = extractVideoId(url)
+  
+  // Get transcript via library (not web scraping!)
+  const transcript = await YoutubeTranscript.fetchTranscript(videoId)
+  // Returns: [{ text, duration, offset }, ...]
+  
+  const content = transcript.map(t => t.text).join(' ')
+  
+  return {
+    title: await getVideoTitle(videoId),
+    content,
+    metadata: {
+      videoId,
+      transcriptLength: transcript.length
+    }
+  }
+}
+
+// ❌ Bad: Web scraping YouTube (fragile, against ToS)
+const html = await fetch(youtubeUrl).then(r => r.text())
+const transcript = extractFromHTML(html) // Breaks when YouTube changes
+```
+
+### Chat Context Management
+```typescript
+// ✅ Good: Maintain conversation history
+interface Message {
+  role: 'user' | 'assistant'
+  content: string
+  sources?: Source[]
+  timestamp: Date
+}
+
+const [messages, setMessages] = useState<Message[]>([])
+
+const sendMessage = async (query: string) => {
+  // Store user message
+  const userMsg: Message = { role: 'user', content: query, timestamp: new Date() }
+  setMessages(prev => [...prev, userMsg])
+  
+  // Pass context (last 10 messages)
+  const context = messages.slice(-10).map(m => ({
+    role: m.role,
+    content: m.content
+  }))
+  
+  const response = await fetch('/api/query', {
+    method: 'POST',
+    body: JSON.stringify({ query, context })
+  })
+  
+  const data = await response.json()
+  
+  // Store assistant response
+  const botMsg: Message = {
+    role: 'assistant',
+    content: data.answer,
+    sources: data.sources,
+    timestamp: new Date()
+  }
+  setMessages(prev => [...prev, botMsg])
+}
+
+// ❌ Bad: No conversation memory
+const sendMessage = async (query: string) => {
+  const response = await fetch('/api/query', {
+    body: JSON.stringify({ query }) // No context
+  })
+  // Each query isolated, no follow-ups work
+}
+```
+
+### Title in Metadata & Ranking
+```typescript
+// ✅ Good: Include titles in chunk metadata
+const chunk = {
+  text: "Docker volumes persist data...",
+  embedding: [0.123, 0.456, ...],
+  metadata: {
+    timestamp: "00:23:15",
+    lectureTitle: "Docker Deep Dive", // ← Include title
+    instructor: "Siddhanth"
+  }
+}
+
+// Use title in ranking
+function rerankResults(results: SearchResult[], query: string) {
+  return results.map(result => {
+    let score = result.similarity
+    
+    // Boost if query matches title
+    const title = result.metadata.lectureTitle || result.metadata.resourceTitle
+    const queryWords = query.toLowerCase().split(' ')
+    const titleWords = title.toLowerCase().split(' ')
+    
+    const matchCount = queryWords.filter(qw =>
+      titleWords.some(tw => tw.includes(qw) || qw.includes(tw))
+    ).length
+    
+    if (matchCount > 0) {
+      score += matchCount * 0.05 // +5% per matching word
+    }
+    
+    return { ...result, score }
+  })
+}
+
+// ❌ Bad: Ignore title in ranking
+function rerankResults(results) {
+  return results.sort((a, b) => b.similarity - a.similarity)
+  // Misses title relevance signals
+}
+```
+
+### Real Data Prompting
+```typescript
+// ✅ Good: Ask for real data first
+async function seedDatabase() {
+  console.log('🌱 Database Seeding\n')
+  
+  const useRealData = await prompt('Do you have real VTT files? (y/n): ')
+  
+  if (useRealData === 'y') {
+    const vttDir = await prompt('VTT directory path: ')
+    const cohortName = await prompt('Cohort name: ')
+    await processRealFiles(vttDir, cohortName)
+  } else {
+    console.log('Using demo data...')
+    await seedDemoData()
+  }
+}
+
+// ❌ Bad: Only demo data, no real data option
+async function seedDatabase() {
+  await seedDemoData() // Always uses fake data
+}
+```
+
+---
+
+## RAG-Specific Rules
+
+### Embedding Generation
+```typescript
+// ✅ Good: Batched, rate-limited, progress tracking
+export async function generateEmbeddingsBatch(
+  chunks: Chunk[],
+  onProgress?: (current: number, total: number) => void
+): Promise<Array<{ chunk: Chunk, embedding: number[] }>> {
+  const batchSize = 10
+  const results = []
+  
+  for (let i = 0; i < chunks.length; i += batchSize) {
+    const batch = chunks.slice(i, i + batchSize)
+    
+    const embeddings = await embedModel.getTextEmbeddingsBatch(
+      batch.map(c => c.text)
+    )
+    
+    results.push(...batch.map((chunk, idx) => ({
+      chunk,
+      embedding: embeddings[idx]
+    })))
+    
+    onProgress?.(i + batch.length, chunks.length)
+    
+    // Rate limit: 15 RPM = wait 4 seconds between batches
+    if (i + batchSize < chunks.length) {
+      await sleep(4000)
+    }
+  }
+  
+  return results
+}
+
+// ❌ Bad: No batching, no rate limiting
+for (const chunk of chunks) {
+  const embedding = await embedModel.getTextEmbedding(chunk.text)
+  // Will hit rate limit quickly
+}
+```
+
+### Vector Search
+```typescript
+// ✅ Good: Use custom RPC function for complex queries
+const { data } = await supabase.rpc('search_knowledge', {
+  query_embedding: embedding,
+  match_threshold: 0.7,
+  match_count: 20,
+  filter_cohort_id: cohortId,
+  filter_type: null
+})
+
+// ❌ Bad: Client-side filtering (slow, fetches too much)
+const { data } = await supabase
+  .from('knowledge_chunks')
+  .select('*')
+// Then filter in JS - very slow for large datasets
+```
+
+### Chunking Strategy
+```typescript
+// ✅ Good: Respect boundaries, add overlap, preserve context
+interface ChunkingConfig {
+  minTokens: 300
+  maxTokens: 800
+  overlap: 50
+  boundaries: ['\n\n', '. ', '? ', '! ']
+}
+
+function chunkText(text: string, config: ChunkingConfig): Chunk[] {
+  // Find natural boundaries
+  // Add overlap between chunks
+  // Preserve metadata (timestamps for lectures)
+}
+
+// ❌ Bad: Fixed size, no boundaries, no overlap
+function chunkText(text: string): Chunk[] {
+  const chunkSize = 500
+  return text.match(/.{1,500}/g) // Splits mid-word
+}
+```
+
+---
+
+## React Component Patterns
+
+### Component Structure
+```typescript
+// ✅ Good: Typed props, extracted logic, error boundaries
+interface ChatInputProps {
+  onSubmit: (query: string) => Promise<void>
+  disabled?: boolean
+}
+
+export function ChatInput({ onSubmit, disabled = false }: ChatInputProps) {
+  const [input, setInput] = useState('')
+  const [isLoading, setIsLoading] = useState(false)
+  
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!input.trim()) return
+    
+    setIsLoading(true)
+    try {
+      await onSubmit(input)
+      setInput('')
+    } catch (error) {
+      console.error('Submit failed:', error)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+  
+  return (
+    <form onSubmit={handleSubmit}>
+      <input
+        value={input}
+        onChange={(e) => setInput(e.target.value)}
+        disabled={disabled || isLoading}
+        placeholder="Ask anything about your lectures..."
+      />
+      <button type="submit" disabled={!input.trim() || isLoading}>
+        {isLoading ? 'Asking...' : 'Send'}
+      </button>
+    </form>
+  )
+}
+
+// ❌ Bad: No types, inline logic, no loading states
+export function ChatInput({ onSubmit }) {
+  const [input, setInput] = useState('')
+  
+  return (
+    <form onSubmit={() => onSubmit(input)}>
+      <input value={input} onChange={(e) => setInput(e.target.value)} />
+      <button>Send</button>
+    </form>
+  )
+}
+```
+
+### State Management with Context
+```typescript
+// ✅ Good: Context for chat history
+const ChatContext = createContext<ChatContextType | null>(null)
+
+export function ChatProvider({ children }: { children: React.ReactNode }) {
+  const [messages, setMessages] = useState<Message[]>([])
+  const [isLoading, setIsLoading] = useState(false)
+  
+  const sendMessage = useCallback(async (query: string) => {
+    setIsLoading(true)
+    
+    // Add user message
+    setMessages(prev => [...prev, { role: 'user', content: query }])
+    
+    try {
+      // Get context
+      const context = messages.slice(-10)
+      
+      const response = await fetch('/api/query', {
+        method: 'POST',
+        body: JSON.stringify({ query, context })
+      })
+      const data = await response.json()
+      
+      // Add bot response
+      setMessages(prev => [...prev, { 
+        role: 'assistant', 
+        content: data.answer,
+        sources: data.sources 
+      }])
+    } finally {
+      setIsLoading(false)
+    }
+  }, [messages])
+  
+  const clearHistory = useCallback(() => {
+    setMessages([])
+  }, [])
+  
+  return (
+    <ChatContext.Provider value={{ messages, isLoading, sendMessage, clearHistory }}>
+      {children}
+    </ChatContext.Provider>
+  )
+}
+
+// ❌ Bad: Prop drilling, no optimization
+function Parent() {
+  const [messages, setMessages] = useState([])
+  return <Child messages={messages} setMessages={setMessages} />
+}
+```
+
+---
+
+## Frontend-Backend Sync Checklist
+
+When implementing features, ensure frontend and backend are aligned:
+
+### Chat with Context
+**Backend:**
+- [ ] API accepts `context` array in request body
+- [ ] Formats conversation history for LLM prompt
+- [ ] Includes context in answer generation
+
+**Frontend:**
+- [ ] Maintains message array in state (last 10)
+- [ ] Sends context with each query
+- [ ] Displays conversation history
+- [ ] Provides "Clear History" button
+
+### Title-Based Ranking
+**Backend:**
+- [ ] Chunk metadata includes `lectureTitle` and `resourceTitle`
+- [ ] Reranking boosts title matches
+- [ ] API response includes titles in sources
+
+**Frontend:**
+- [ ] Source cards display title prominently
+- [ ] Title visible before snippet
+- [ ] Titles help users identify relevance
+
+### VTT Sequence Number Handling
+**Backend:**
+- [ ] Parser skips lines with only digits
+- [ ] Preserves numbers in actual speech
+- [ ] Tests verify both behaviors
+
+**Frontend:**
+- [ ] No need for changes (handled server-side)
+- [ ] Upload form accepts .vtt files
+- [ ] Processing status shows progress
+
+### YouTube Transcripts
+**Backend:**
+- [ ] Uses `youtube-transcript` library
+- [ ] Extracts video ID from URL
+- [ ] Fetches transcript automatically
+- [ ] Generates summary from transcript
+
+**Frontend:**
+- [ ] Resource form accepts YouTube URLs
+- [ ] Validates URL format
+- [ ] Shows "Processing..." during extraction
+- [ ] Displays extracted transcript summary
+
+### Real Data Prompting
+**Backend:**
+- [ ] Seed script prompts for real data first
+- [ ] Accepts file paths as input
+- [ ] Falls back to demo data if declined
+
+**Frontend:**
+- [ ] No changes needed (CLI tool)
+- [ ] Admin can upload via UI later
+
+---
+
+## Testing Guidelines
+
+### Unit Tests
+```typescript
+// tests/vtt-parser.test.ts
+
+import { describe, it, expect } from 'vitest'
+import { parseVTT, findLectureStart } from '@/lib/vtt/parser'
+
+describe('VTT Parser', () => {
+  it('should skip sequence numbers', () => {
+    const vtt = `WEBVTT\n\n1\n00:00:00.000 --> 00:00:03.000\nHello`
+    const segments = parseVTT(vtt)
+    
+    expect(segments).toHaveLength(1)
+    expect(segments[0].text).toBe('Hello') // No "1"
+  })
+  
+  it('should preserve numbers in speech', () => {
+    const vtt = `WEBVTT\n\n1\n00:00:00.000 --> 00:00:03.000\nStep 1 is important`
+    const segments = parseVTT(vtt)
+    
+    expect(segments[0].text).toBe('Step 1 is important') // "1" preserved
+  })
+  
+  it('should detect lecture start after 10 mins', () => {
+    const segments = [
+      { text: 'Music', startTime: '00:00:00.000' },
+      { text: 'Today we will cover Docker', startTime: '00:11:00.000' }
+    ]
+    const start = findLectureStart(segments)
+    expect(start).toBe(1) // Found after 10 mins
+  })
+})
+```
+
+### Integration Tests for Context
+```typescript
+// tests/api/query-context.test.ts
+
+describe('POST /api/query with context', () => {
+  it('should understand follow-up questions', async () => {
+    // First query
+    const response1 = await fetch('/api/query', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${token}` },
+      body: JSON.stringify({ query: 'How does Docker work?' })
+    })
+    const data1 = await response1.json()
+    
+    // Follow-up query with context
+    const response2 = await fetch('/api/query', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${token}` },
+      body: JSON.stringify({
+        query: 'What about volumes?',
+        context: [
+          { role: 'user', content: 'How does Docker work?' },
+          { role: 'assistant', content: data1.answer }
+        ]
+      })
+    })
+    const data2 = await response2.json()
+    
+    // Should understand "volumes" refers to Docker volumes
+    expect(data2.answer.toLowerCase()).toContain('docker')
+    expect(data2.answer.toLowerCase()).toContain('volume')
+  })
+})
+```
+
+---
+
+## Common Pitfalls to Avoid
+
+### 1. Forgetting to Pass Context
+```typescript
+// ❌ Bad: No context passed
+await fetch('/api/query', {
+  body: JSON.stringify({ query })
+})
+
+// ✅ Good: Include conversation history
+await fetch('/api/query', {
+  body: JSON.stringify({ 
+    query,
+    context: messages.slice(-10).map(m => ({ role: m.role, content: m.content }))
+  })
+})
+```
+
+### 2. Not Including Titles in Chunks
+```typescript
+// ❌ Bad: Missing title in metadata
+await supabase.from('knowledge_chunks').insert({
+  text: chunk.text,
+  embedding: chunk.embedding,
+  metadata: { timestamp: '00:15:00' } // Missing lectureTitle
+})
+
+// ✅ Good: Include title for ranking
+await supabase.from('knowledge_chunks').insert({
+  text: chunk.text,
+  embedding: chunk.embedding,
+  metadata: { 
+    timestamp: '00:15:00',
+    lectureTitle: lecture.title // ← Important for ranking
+  }
+})
+```
+
+### 3. Hardcoding Intro Skip Time
+```typescript
+// ❌ Bad: 5 minute hardcode (too short)
+const introEnd = 5 * 60
+
+// ✅ Good: 10 minute fallback with keyword detection
+const introEnd = findLectureStart(segments) // Smart detection, 10 min fallback
+```
+
+### 4. Not Validating YouTube URLs
+```typescript
+// ❌ Bad: Accept any URL
+await scrapeYouTube(url)
+
+// ✅ Good: Validate first
+if (!/youtube\.com\/watch\?v=|youtu\.be\//.test(url)) {
+  throw new Error('Invalid YouTube URL')
+}
+const videoId = extractVideoId(url)
+await scrapeYouTube(videoId)
+```
+
+### 5. Clearing Context on Every Request
+```typescript
+// ❌ Bad: Lose context between queries
+const [currentQuery, setCurrentQuery] = useState('')
+
+// ✅ Good: Maintain message history
+const [messages, setMessages] = useState<Message[]>([])
+// Persist across multiple queries
+```
+
+---
+
+## Performance Checklist
+
+Before committing, verify:
+
+- [ ] No unnecessary re-renders (use React.memo, useCallback)
+- [ ] Database queries use indexes
+- [ ] No N+1 query patterns
+- [ ] Large operations batched
+- [ ] Context array limited to last 10 messages (not full history)
+- [ ] Titles included in metadata (improves ranking speed)
+- [ ] VTT parsing skips empty lines and sequence numbers
+- [ ] API responses cached where appropriate
+- [ ] Images optimized (use Next.js Image component)
+- [ ] Bundle size reasonable (check with `next build`)
+
+---
+
+## Pre-Commit Checklist
+
+Before every commit:
+
+- [ ] Code compiles without TypeScript errors
+- [ ] All tests pass (`npm run test`)
+- [ ] No console.log statements (use proper logging)
+- [ ] No commented-out code blocks
+- [ ] Environment variables not hardcoded
+- [ ] Commit message follows convention (feat/fix/docs/etc)
+- [ ] **VTT parser tests include sequence number cases**
+- [ ] **Context passing tested in integration tests**
+- [ ] **Titles included in all chunk metadata**
+
+---
+
+## Priority Reminders
+
+1. **Working > Perfect**: Ship MVP, refine later
+2. **Test as you go**: Don't accumulate testing debt
+3. **Document as you build**: Update docs with each feature
+4. **Commit frequently**: Small, atomic commits with clear messages
+5. **Focus on P0**: Don't get distracted by nice-to-haves
+6. **Real data first**: Always prompt for real VTT files before using demo
+7. **Context matters**: Follow-up questions should work naturally
+8. **Titles boost relevance**: Include in metadata for better ranking
+
+---
+
+## Quick Reference Commands
+
+### Development
+```bash
+npm run dev              # Start dev server
+npm run build            # Production build
+npm run lint             # ESLint check
+npm run type-check       # TypeScript check
+npm run seed             # Seed database (prompts for real data)
+```
+
+### Database
+```bash
+supabase db push         # Apply migrations
+supabase db pull         # Pull remote schema
+supabase gen types typescript --local > types/database.ts
+```
+
+### Testing
+```bash
+npm run test             # Run unit tests
+npm run test:watch       # Watch mode
+npm run test:e2e         # End-to-end tests
+npm run test:coverage    # Coverage report
+```
+
+### Deployment
+```bash
+git push origin main     # Auto-deploys to Vercel
+vercel --prod            # Manual production deploy
+vercel logs              # View production logs
+```
+
+---
+
+**Remember:** 
+- Real data > Demo data (always ask first)
+- Context > Isolated queries (pass conversation history)
+- Titles > Generic metadata (improves search relevance)
+- 10 mins > 5 mins (for intro detection)
+- youtube-transcript > web scraping (for YouTube)
+- Test continuously, commit frequently, document clearly
+
+**Good luck! You've got this.** 🚀
+
+---
+
+**Last Updated:** January 2025  
+**Version:** 2.0 (Updated with context management, title ranking, VTT improvements)
+```typescript
+// ✅ Good: Parallel operations where possible
+const [lectures, resources] = await Promise.all([
+  getLectures(cohortId),
+  getResources(cohortId)
+])
+
+// ❌ Bad: Sequential when not necessary
+const lectures = await getLectures(cohortId)
+const resources = await getResources(cohortId)
+
+// ✅ Good: Sequential when order matters
+const file = await uploadFile(vtt)
+const segments = await parseVTT(file.content) // Needs file first
+const chunks = await chunkSegments(segments)  // Needs segments first
+```
+
+---
+
+## Database Patterns
+
+### Query Structure
+```typescript
+// ✅ Good: Type-safe, parameterized, error handling
+export async function getLectureById(
+  id: string
+): Promise<Lecture | null> {
+  const { data, error } = await supabase
+    .from('lectures')
+    .select(`
+      *,
+      module:modules(id, name, cohort_id),
+      resources:lecture_resources(resource:resources(*))
+    `)
+    .eq('id', id)
+    .single()
+  
+  if (error) {
+    console.error('[getLectureById]', error)
+    return null
+  }
+  
+  return data as Lecture
+}
+
+// ❌ Bad: String interpolation, no types, no error handling
+const data = await supabase.from('lectures').select('*').eq('id', id)
+return data
+```
+
+### RLS-Aware Queries
+```typescript
+// ✅ Good: Let RLS handle filtering
+const { data } = await supabase
+  .from('knowledge_chunks')
+  .select('*')
+  .eq('type', 'lecture')
+// RLS policy automatically filters by user's cohort
+
+// ❌ Bad: Manual filtering (bypasses RLS)
+const { data } = await supabaseAdmin // Using service role
+  .from('knowledge_chunks')
+  .select('*')
+  .eq('cohort_id', userCohortId) // Manual filter
+```
+
+---
+
+## API Route Patterns
+
+### Standard Structure
+```typescript
+// app/api/resource/route.ts
+
+import { NextRequest, NextResponse } from 'next/server'
+import { authenticate } from '@/lib/auth/middleware'
+import { z } from 'zod'
+
+// 1. Request schema
+const RequestSchema = z.object({
+  field: z.string().min(1, 'Field required')
+})
+
+// 2. Handler
+export async function POST(req: NextRequest) {
+  try {
+    // 3. Auth
+    const { user, error: authError } = await authenticate(req)
+    if (authError) {
+      return NextResponse.json(
+        { error: authError },
+        { status: 401 }
+      )
+    }
+    
+    // 4. Validate
+    const body = await req.json()
+    const validated = RequestSchema.parse(body)
+    
+    // 5. Business logic (call lib/ functions, not inline)
+    const result = await processResource(validated, user.id)
+    
+    // 6. Response
+    return NextResponse.json({
+      success: true,
+      data: result
+    })
+    
+  } catch (error) {
+    // 7. Error handling
+    if (error instanceof z.ZodError) {
+      return NextResponse.json(
+        { error: 'Invalid input', details: error.errors },
+        { status: 400 }
+      )
+    }
+    
+    console.error('[API Error]', error)
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    )
+  }
+}
+```
+
+---
+
+## RAG-Specific Rules
+
+### Embedding Generation
+```typescript
+// ✅ Good: Batched, rate-limited, progress tracking
+export async function generateEmbeddingsBatch(
+  chunks: Chunk[],
+  onProgress?: (current: number, total: number) => void
+): Promise<Array<{ chunk: Chunk, embedding: number[] }>> {
+  const batchSize = 10
+  const results = []
+  
+  for (let i = 0; i < chunks.length; i += batchSize) {
+    const batch = chunks.slice(i, i + batchSize)
+    
+    const embeddings = await embedModel.getTextEmbeddingsBatch(
+      batch.map(c => c.text)
+    )
+    
+    results.push(...batch.map((chunk, idx) => ({
+      chunk,
+      embedding: embeddings[idx]
+    })))
+    
+    onProgress?.(i + batch.length, chunks.length)
+    
+    // Rate limit: 15 RPM = wait 4 seconds between batches
+    if (i + batchSize < chunks.length) {
+      await sleep(4000)
+    }
+  }
+  
+  return results
+}
+
+// ❌ Bad: No batching, no rate limiting
+for (const chunk of chunks) {
+  const embedding = await embedModel.getTextEmbedding(chunk.text)
+  // Will hit rate limit quickly
+}
+```
+
+### Vector Search
+```typescript
+// ✅ Good: Use custom RPC function for complex queries
+const { data } = await supabase.rpc('search_knowledge', {
+  query_embedding: embedding,
+  match_threshold: 0.7,
+  match_count: 20,
+  filter_cohort_id: cohortId,
+  filter_type: null
+})
+
+// ❌ Bad: Client-side filtering (slow, fetches too much)
+const { data } = await supabase
+  .from('knowledge_chunks')
+  .select('*')
+// Then filter in JS - very slow for large datasets
+```
+
+### Chunking Strategy
+```typescript
+// ✅ Good: Respect boundaries, add overlap, preserve context
+interface ChunkingConfig {
+  minTokens: 300
+  maxTokens: 800
+  overlap: 50
+  boundaries: ['\n\n', '. ', '? ', '! ']
+}
+
+function chunkText(text: string, config: ChunkingConfig): Chunk[] {
+  // Find natural boundaries
+  // Add overlap between chunks
+  // Preserve metadata (timestamps for lectures)
+}
+
+// ❌ Bad: Fixed size, no boundaries, no overlap
+function chunkText(text: string): Chunk[] {
+  const chunkSize = 500
+  return text.match(/.{1,500}/g) // Splits mid-word
+}
+```
+
+---
+
+## React Component Patterns
+
+### Component Structure
+```typescript
+// ✅ Good: Typed props, extracted logic, error boundaries
+interface ChatInputProps {
+  onSubmit: (query: string) => Promise<void>
+  disabled?: boolean
+}
+
+export function ChatInput({ onSubmit, disabled = false }: ChatInputProps) {
+  const [input, setInput] = useState('')
+  const [isLoading, setIsLoading] = useState(false)
+  
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!input.trim()) return
+    
+    setIsLoading(true)
+    try {
+      await onSubmit(input)
+      setInput('')
+    } catch (error) {
+      console.error('Submit failed:', error)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+  
+  return (
+    <form onSubmit={handleSubmit}>
+      <input
+        value={input}
+        onChange={(e) => setInput(e.target.value)}
+        disabled={disabled || isLoading}
+        placeholder="Ask anything about your lectures..."
+      />
+      <button type="submit" disabled={!input.trim() || isLoading}>
+        {isLoading ? 'Asking...' : 'Send'}
+      </button>
+    </form>
+  )
+}
+
+// ❌ Bad: No types, inline logic, no loading states
+export function ChatInput({ onSubmit }) {
+  const [input, setInput] = useState('')
+  
+  return (
+    <form onSubmit={() => onSubmit(input)}>
+      <input value={input} onChange={(e) => setInput(e.target.value)} />
+      <button>Send</button>
+    </form>
+  )
+}
+```
+
+### State Management
+```typescript
+// ✅ Good: Context for shared state, local state for UI
+// app/(dashboard)/layout.tsx
+const ChatContext = createContext<ChatContextType | null>(null)
+
+export function ChatProvider({ children }: { children: React.ReactNode }) {
+  const [messages, setMessages] = useState<Message[]>([])
+  const [isLoading, setIsLoading] = useState(false)
+  
+  const sendMessage = useCallback(async (query: string) => {
+    setIsLoading(true)
+    try {
+      const response = await fetch('/api/query', {
+        method: 'POST',
+        body: JSON.stringify({ query })
+      })
+      const data = await response.json()
+      setMessages(prev => [...prev, { role: 'user', content: query }, data])
+    } finally {
+      setIsLoading(false)
+    }
+  }, [])
+  
+  return (
+    <ChatContext.Provider value={{ messages, isLoading, sendMessage }}>
+      {children}
+    </ChatContext.Provider>
+  )
+}
+
+// ❌ Bad: Prop drilling, no optimization
+function Parent() {
+  const [messages, setMessages] = useState([])
+  return <Child messages={messages} setMessages={setMessages} />
+}
+```
+
+---
+
+## Testing Guidelines
+
+### Unit Tests
+```typescript
+// tests/vtt-parser.test.ts
+
+import { describe, it, expect } from 'vitest'
+import { parseVTT, findLectureStart } from '@/lib/vtt/parser'
+
+describe('VTT Parser', () => {
+  it('should parse valid VTT correctly', () => {
+    const vtt = `WEBVTT\n\n1\n00:00:00.000 --> 00:00:03.000\nHello world`
+    const segments = parseVTT(vtt)
+    
+    expect(segments).toHaveLength(1)
+    expect(segments[0].text).toBe('Hello world')
+    expect(segments[0].startTime).toBe('00:00:00.000')
+  })
+  
+  it('should handle malformed VTT gracefully', () => {
+    const malformed = `WEBVTT\n\nBroken`
+    expect(() => parseVTT(malformed)).not.toThrow()
+  })
+  
+  it('should detect lecture start', () => {
+    const segments = [
+      { text: 'Music playing...', startTime: '00:00:00.000' },
+      { text: 'Today we will cover Docker', startTime: '00:05:00.000' }
+    ]
+    const startIndex = findLectureStart(segments)
+    expect(startIndex).toBe(1)
+  })
+})
+```
+
+### Integration Tests
+```typescript
+// tests/api/query.test.ts
+
+import { describe, it, expect } from 'vitest'
+
+describe('POST /api/query', () => {
+  it('should return answer with sources', async () => {
+    const response = await fetch('/api/query', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${testToken}`
+      },
+      body: JSON.stringify({ query: 'How do Docker volumes work?' })
+    })
+    
+    const data = await response.json()
+    
+    expect(response.status).toBe(200)
+    expect(data.answer).toBeTruthy()
+    expect(data.sources).toBeInstanceOf(Array)
+    expect(data.sources.length).toBeGreaterThan(0)
+    expect(data.sources[0]).toHaveProperty('timestamp')
+  })
+  
+  it('should require authentication', async () => {
+    const response = await fetch('/api/query', {
+      method: 'POST',
+      body: JSON.stringify({ query: 'test' })
+    })
+    
+    expect(response.status).toBe(401)
+  })
+})
+```
+
+---
+
+## MCP Integration
+
+### Supabase MCP
+```typescript
+// When writing DB queries, Cursor will auto-suggest:
+// - Table names (lectures, knowledge_chunks, resources)
+// - Column names (cohort_id, embedding, metadata)
+// - Foreign key relationships
+
+// Example: Type "supabase.from('" and MCP suggests all tables
+const { data } = await supabase
+  .from('knowledge_chunks') // ← Auto-completed by MCP
+  .select('text, metadata, embedding') // ← Columns suggested
+```
+
+### Context7 MCP
+```typescript
+// Before implementing LlamaIndex features:
+// 1. Cursor auto-fetches latest docs from llamaindex.ai
+// 2. Code suggestions use current API (not outdated)
+
+// Example: Type "VectorStoreIndex" and Context7 shows latest usage:
+import { VectorStoreIndex } from 'llamaindex'
+const index = VectorStoreIndex.fromVectorStore(
+  vectorStore,
+  serviceContext // ← Latest parameter structure
+)
+```
+
+### Vercel MCP
+```
+// After deployment, check logs via MCP:
+// Cursor shows: "Function /api/query took 8.5s (target: < 5s)"
+// MCP suggests: "Consider adding caching or pagination"
+```
+
+---
+
+## Common Pitfalls to Avoid
+
+### 1. localStorage in Artifacts
+```typescript
+// ❌ NEVER: localStorage not supported in Claude artifacts
+localStorage.setItem('token', jwt)
+
+// ✅ Use: React state or server-side sessions
+const [token, setToken] = useState<string | null>(null)
+```
+
+### 2. Hardcoded Cohort IDs
+```typescript
+// ❌ Bad: Hardcoded assumptions
+const cohortId = 'cohort-5'
+
+// ✅ Good: Get from user context
+const { cohortId } = await getUserCohort(user.id)
+```
+
+### 3. Unvalidated User Input
+```typescript
+// ❌ Bad: Direct use without validation
+const { query } = req.body
+const results = await searchLectures(query)
+
+// ✅ Good: Validate with Zod
+const { query } = z.object({
+  query: z.string().min(1).max(500)
+}).parse(req.body)
+```
+
+### 4. Sequential Operations
+```typescript
+// ❌ Bad: Sequential when can be parallel
+const summary = await generateSummary(transcript)
+const topics = await extractTopics(transcript)
+const tools = await extractTools(transcript)
+
+// ✅ Good: Parallel operations
+const [summary, topics, tools] = await Promise.all([
+  generateSummary(transcript),
+  extractTopics(transcript),
+  extractTools(transcript)
+])
+```
+
+### 5. Missing Error Boundaries
+```typescript
+// ❌ Bad: Errors crash entire app
+export default function ChatInterface() {
+  const { messages } = useChat() // If this throws, app crashes
+  return <MessageList messages={messages} />
+}
+
+// ✅ Good: Error boundary catches errors
+export default function ChatInterface() {
+  return (
+    <ErrorBoundary fallback={<ErrorMessage />}>
+      <ChatComponent />
+    </ErrorBoundary>
+  )
+}
+```
+
+---
+
+## Performance Checklist
+
+Before committing, verify:
+
+- [ ] No unnecessary re-renders (use React.memo, useCallback)
+- [ ] Database queries use indexes
+- [ ] No N+1 query patterns
+- [ ] Large operations batched
+- [ ] API responses cached where appropriate
+- [ ] Images optimized (use Next.js Image component)
+- [ ] Bundle size reasonable (check with `next build`)
+
+---
+
+## Pre-Commit Checklist
+
+Before every commit:
+
+- [ ] Code compiles without TypeScript errors
+- [ ] All tests pass (`npm run test`)
+- [ ] No console.log statements (use proper logging)
+- [ ] No commented-out code blocks
+- [ ] Environment variables not hardcoded
+- [ ] Commit message follows convention (feat/fix/docs/etc)
+
+---
+
+## Documentation Standards
+
+### Function Documentation
+```typescript
+/**
+ * Parses VTT file content into structured segments.
+ * 
+ * @param content - Raw VTT file content as string
+ * @returns Array of VTT segments with timestamps and text
+ * @throws Error if VTT format is invalid
+ * 
+ * @example
+ * const segments = parseVTT(vttContent)
+ * console.log(segments[0].text) // "Hello world"
+ */
+export function parseVTT(content: string): VTTSegment[] {
+  // Implementation
+}
+```
+
+### README Updates
+Every new feature should update:
+- `README.md` - User-facing features
+- `docs/ARCHITECTURE.md` - Technical changes
+- `docs/API.md` - New endpoints
+- `CHANGELOG.md` - What changed
+
+---
+
+## When to Ask for Help
+
+**Ask Cursor AI (Cmd+K) for:**
+- Boilerplate code generation
+- Type definitions
+- Test scaffolding
+- Refactoring suggestions
+
+**Check Context7 docs for:**
+- LlamaIndex API usage
+- Supabase latest features
+- Next.js patterns
+
+**Search issues/docs for:**
+- Library-specific errors
+- Integration problems
+- Performance optimization
+
+**Escalate to human help if:**
+- Blocked for > 30 mins
+- Security concern
+- Architecture decision needed
+- Multiple failed approaches
+
+---
+
+## Priority Reminders
+
+1. **Working > Perfect**: Ship MVP, refine later
+2. **Test as you go**: Don't accumulate testing debt
+3. **Document as you build**: Update docs with each feature
+4. **Commit frequently**: Small, atomic commits with clear messages
+5. **Focus on P0**: Don't get distracted by nice-to-haves
+6. **Real data first**: Always prompt for real VTT files before using demo
+7. **Context matters**: Follow-up questions should work naturally
+8. **Titles boost relevance**: Include in metadata for better ranking
+
+---
+
+## Quick Reference Commands
+
+### Development
+```bash
+npm run dev              # Start dev server
+npm run build            # Production build
+npm run lint             # ESLint check
+npm run type-check       # TypeScript check
+npm run seed             # Seed database (prompts for real data)
+```
+
+### Database
+```bash
+supabase db push         # Apply migrations
+supabase db pull         # Pull remote schema
+supabase gen types typescript --local > types/database.ts
+```
+
+### Testing
+```bash
+npm run test             # Run unit tests
+npm run test:watch       # Watch mode
+npm run test:e2e         # End-to-end tests
+npm run test:coverage    # Coverage report
+```
+
+### Deployment
+```bash
+git push origin main     # Auto-deploys to Vercel
+vercel --prod            # Manual production deploy
+vercel logs              # View production logs
+```
+
+---
+
+## File Organization Rules
+
+### Module Structure
+```
+lib/[module]/
+├── index.ts           # Public API exports
+├── types.ts           # TypeScript interfaces
+├── [feature].ts       # Implementation
+├── [feature].test.ts  # Tests
+└── utils.ts           # Helper functions
+```
+
+### Example: VTT Module
+```
+lib/vtt/
+├── index.ts           # export { parseVTT, chunkVTT }
+├── types.ts           # VTTSegment, Chunk interfaces
+├── parser.ts          # parseVTT implementation
+├── parser.test.ts     # Parser tests
+├── chunker.ts         # chunkVTT implementation
+├── chunker.test.ts    # Chunker tests
+├── intro-detector.ts  # findLectureStart
+└── timestamp-utils.ts # Time conversion helpers
+```
+
+### Import Aliases
+```typescript
+// ✅ Good: Use path aliases
+import { parseVTT } from '@/lib/vtt'
+import { Button } from '@/components/ui/button'
+import type { Lecture } from '@/types/database'
+
+// ❌ Bad: Relative imports
+import { parseVTT } from '../../../lib/vtt'
+import { Button } from '../../components/ui/button'
+```
+
+---
+
+## Environment Variable Management
+
+### .env.local (Development)
+```bash
+# Supabase
+SUPABASE_URL=https://xxxxx.supabase.co
+SUPABASE_ANON_KEY=eyJxxx...
+SUPABASE_SERVICE_ROLE_KEY=eyJxxx...
+
+# OpenRouter
+OPENROUTER_API_KEY=sk-or-xxx...
+
+# Optional: Resource Scraping
+GITHUB_TOKEN=ghp_xxx...
+
+# Optional: Analytics (post-MVP)
+NEXT_PUBLIC_ANALYTICS_ID=xxx
+```
+
+### .env.example (Committed to repo)
+```bash
+# Copy this to .env.local and fill in your values
+
+SUPABASE_URL=
+SUPABASE_ANON_KEY=
+SUPABASE_SERVICE_ROLE_KEY=
+
+OPENROUTER_API_KEY=
+
+# Optional
+GITHUB_TOKEN=
+```
+
+### Vercel Environment Variables
+Set in Vercel dashboard → Project Settings → Environment Variables:
+- Mark sensitive vars as "Secret"
+- Set for Production, Preview, and Development
+- Never commit actual values to Git
+
+---
+
+## Naming Conventions Reference
+
+### Database (snake_case)
+```
+Tables:      knowledge_chunks, lecture_resources
+Columns:     cohort_id, created_at, is_global
+Functions:   search_knowledge, update_timestamp
+```
+
+### TypeScript (camelCase/PascalCase)
+```
+Interfaces:  LectureSummary, VTTSegment, ChatResponse
+Types:       ChunkingConfig, RankingFactors
+Functions:   parseVTT, generateEmbeddings, queryKnowledge
+Variables:   cohortId, isLoading, startTime
+Constants:   API_BASE_URL, MAX_CHUNK_SIZE
+```
+
+### React (PascalCase)
+```
+Components:  ChatInterface, SourceCard, MessageList
+Hooks:       useAuth, useChatHistory, useDebounce
+Contexts:    ChatContext, AuthContext
+```
+
+### Files (kebab-case)
+```
+Files:       vtt-parser.ts, query-engine.ts, auth-middleware.ts
+Components:  chat-interface.tsx, source-card.tsx
+Tests:       vtt-parser.test.ts, api.test.ts
+```
+
+---
+
+## Git Workflow
+
+### Branch Strategy
+```
+main        - Production (auto-deploys)
+dev         - Development (staging)
+feature/*   - Feature branches (optional for solo)
+```
+
+### Commit Message Format
+```
+<type>(<scope>): <subject>
+
+Types: feat, fix, docs, test, chore, refactor, style, perf
+Scope: vtt, rag, api, ui, db (optional)
+Subject: Imperative, lowercase, no period
+
+Examples:
+feat(vtt): implement semantic chunking with overlap
+fix(api): handle rate limit errors gracefully
+docs: update README with setup instructions
+test(rag): add unit tests for hybrid ranking
+chore: update dependencies to latest versions
+```
+
+### Commit Frequency
+```
+✅ Good: Commit after each logical unit of work
+- feat: implement VTT parser
+- test: add VTT parser tests
+- docs: document VTT parser API
+
+❌ Bad: Single commit for entire feature
+- feat: implement entire VTT processing pipeline
+```
+
+---
+
+## Troubleshooting Quick Guide
+
+### "Type error in Supabase query"
+```typescript
+// Problem: Type mismatch
+const { data } = await supabase.from('lectures').select('*')
+// data is 'any'
+
+// Solution: Regenerate types
+supabase gen types typescript --local > types/database.ts
+
+// Then import and use
+import type { Database } from '@/types/database'
+const { data } = await supabase.from('lectures').select<'*', Lecture>('*')
+```
+
+### "RLS policy blocking query"
+```typescript
+// Problem: Query returns empty despite data existing
+const { data } = await supabase.from('lectures').select('*')
+// data is []
+
+// Solution 1: Check user has cohort assignment
+const { data: userCohorts } = await supabase
+  .from('user_cohorts')
+  .select('*')
+  .eq('user_id', user.id)
+// If empty, assign user to cohort
+
+// Solution 2: Temporarily disable RLS to test
+// In Supabase SQL editor:
+ALTER TABLE lectures DISABLE ROW LEVEL SECURITY;
+// Run query, then re-enable
+ALTER TABLE lectures ENABLE ROW LEVEL SECURITY;
+```
+
+### "OpenRouter rate limit"
+```typescript
+// Problem: 429 Too Many Requests
+Error: Rate limit exceeded
+
+// Solution 1: Increase batch wait time
+await sleep(5000) // 5 seconds instead of 4
+
+// Solution 2: Implement exponential backoff
+async function withRetry(fn, maxRetries = 3) {
+  for (let i = 0; i < maxRetries; i++) {
+    try {
+      return await fn()
+    } catch (error) {
+      if (error.status === 429 && i < maxRetries - 1) {
+        await sleep(Math.pow(2, i) * 1000)
+        continue
+      }
+      throw error
+    }
+  }
+}
+```
+
+### "Vector search returns no results"
+```typescript
+// Problem: search_knowledge RPC returns empty
+const { data } = await supabase.rpc('search_knowledge', { ... })
+// data is []
+
+// Debug steps:
+// 1. Check embeddings exist
+const { count } = await supabase
+  .from('knowledge_chunks')
+  .select('*', { count: 'exact', head: true })
+console.log('Total chunks:', count) // Should be > 0
+
+// 2. Check vector index exists
+// In Supabase SQL editor:
+SELECT indexname FROM pg_indexes WHERE tablename = 'knowledge_chunks';
+// Should show ivfflat index
+
+// 3. Lower similarity threshold
+const { data } = await supabase.rpc('search_knowledge', {
+  match_threshold: 0.5 // Lower from 0.7
+})
+```
+
+### "Vercel deployment fails"
+```bash
+# Problem: Build fails on Vercel
+
+# Check 1: Build locally
+npm run build
+# Fix any errors shown
+
+# Check 2: Verify environment variables
+# In Vercel dashboard, ensure all env vars are set
+
+# Check 3: Check build logs
+vercel logs <deployment-url>
+
+# Common fixes:
+# - Missing dependencies: npm install <package>
+# - Type errors: npm run type-check
+# - ESLint errors: npm run lint -- --fix
+```
+
+---
+
+## Performance Optimization Patterns
+
+### Database Query Optimization
+```typescript
+// ❌ Bad: N+1 query pattern
+const lectures = await getLectures()
+for (const lecture of lectures) {
+  const resources = await getResourcesForLecture(lecture.id)
+  // Queries DB N times
+}
+
+// ✅ Good: Single query with JOIN
+const lectures = await supabase
+  .from('lectures')
+  .select(`
+    *,
+    resources:lecture_resources(
+      resource:resources(*)
+    )
+  `)
+// Single query fetches everything
+```
+
+### React Rendering Optimization
+```typescript
+// ❌ Bad: Unnecessary re-renders
+function ChatInterface() {
+  const [messages, setMessages] = useState([])
+  
+  const sendMessage = async (text) => {
+    const response = await fetch('/api/query', { ... })
+    setMessages([...messages, response])
+  }
+  
+  return <MessageList messages={messages} onSend={sendMessage} />
+  // sendMessage recreated every render
+}
+
+// ✅ Good: Memoized callback
+function ChatInterface() {
+  const [messages, setMessages] = useState([])
+  
+  const sendMessage = useCallback(async (text) => {
+    const response = await fetch('/api/query', { ... })
+    setMessages(prev => [...prev, response])
+  }, []) // Empty deps - stable reference
+  
+  return <MessageList messages={messages} onSend={sendMessage} />
+}
+```
+
+---
+
+## Security Best Practices
+
+### Authentication
+```typescript
+// ✅ Always verify token server-side
+export async function GET(req: NextRequest) {
+  const { user, error } = await authenticate(req)
+  if (error) return NextResponse.json({ error }, { status: 401 })
+  // Proceed with authenticated user
+}
+
+// ❌ Never trust client-side claims
+export async function GET(req: NextRequest) {
+  const userId = req.headers.get('x-user-id') // Client can fake this
+  // INSECURE
+}
+```
+
+### Input Validation
+```typescript
+// ✅ Validate and sanitize all inputs
+const schema = z.object({
+  query: z.string()
+    .min(1, 'Query required')
+    .max(500, 'Query too long')
+    .regex(/^[a-zA-Z0-9\s\?\.\-]+$/, 'Invalid characters'),
+  lectureId: z.string().uuid().optional()
+})
+
+const validated = schema.parse(req.body)
+
+// ❌ Use input directly
+const { query } = req.body
+await searchLectures(query) // Could be injection attack
+```
+
+---
+
+## Final Pre-Demo Checklist
+
+### 24 Hours Before
+- [ ] All P0 features working in production
+- [ ] Real or demo data loaded (5 lectures, 10 resources)
+- [ ] Test accounts created and working
+- [ ] Demo script written and rehearsed
+- [ ] Backup video recorded
+- [ ] Known bugs documented
+
+### 1 Hour Before
+- [ ] Test demo flow end-to-end (3 times)
+- [ ] Clear browser cache and cookies
+- [ ] Login to all test accounts
+- [ ] Check OpenRouter quota (> 50% remaining)
+- [ ] Verify production environment stable
+- [ ] Close unnecessary apps/tabs
+
+### Go-Live Checklist
+- [ ] Laptop fully charged
+- [ ] Backup internet ready (phone hotspot)
+- [ ] Demo tabs open and ready
+- [ ] Notifications disabled
+- [ ] Backup video accessible
+- [ ] Timer ready (5-minute limit)
+
+---
+
+## Remember
+
+1. **MVP mindset**: Working demo > perfect code
+2. **Test continuously**: Don't accumulate testing debt
+3. **Commit often**: Small, clear commits
+4. **Ask for help**: Don't waste time stuck
+5. **Focus on P0**: Resist feature creep
+6. **Document as you go**: Future you will thank you
+7. **Celebrate progress**: Each TODO complete is a win
+8. **Real data first**: Always prompt before using demo
+9. **Context matters**: Follow-ups should work naturally
+10. **Titles help**: Include in metadata for better search
+
+---
+
+**Good luck! You've got this.** 🚀
+
+---
+
+## Additional Resources
+
+**Project Documentation:**
+- `docs/PRD.md` - Product requirements
+- `docs/TECHNICAL_ARCHITECTURE.md` - System design
+- `docs/DATABASE_API_SPEC.md` - Schema and endpoints
+- `docs/MASTER_TODO.md` - Implementation plan
+
+**External Docs:**
+- LlamaIndex: https://docs.llamaindex.ai
+- Supabase: https://supabase.com/docs
+- Next.js: https://nextjs.org/docs
+- OpenRouter: https://openrouter.ai/docs
+- youtube-transcript: https://www.npmjs.com/package/youtube-transcript
+
+**Community:**
+- 100x Engineers Discord
+- Cursor Discord
+- Stack Overflow
+
+---
+
+**Last Updated:** January 2025  
+**Version:** 2.0 (Complete with all patterns and best practices)

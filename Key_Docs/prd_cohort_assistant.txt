@@ -1,0 +1,753 @@
+# Product Requirements Document (PRD)
+## Cohort Lecture Assistant
+
+**Version:** 2.0 (REVISED)  
+**Last Updated:** January 2025  
+**Status:** MVP Development  
+**Project Lead:** [Your Name]  
+**Target Launch:** Hackathon Demo (20 hours)
+
+---
+
+## Executive Summary
+
+The Cohort Lecture Assistant is an **AI-powered chat interface** that transforms the entire 100x Engineers cohort curriculum into a searchable knowledge base. Instead of forcing students to browse lectures or rewatch hours of video, they simply **ask questions in natural language** and receive precise answers with timestamp citations from lectures and auto-scraped resources.
+
+**Core Innovation:** Universal chat interface where students ask "How do Docker volumes work?" and instantly get:
+- Direct answer synthesized from all relevant sources
+- Ranked citations from lectures (with timestamps) and resources (GitHub/YouTube/blogs)
+- Ability to jump directly to video moments or read resource excerpts
+
+**MVP Goal:** Demonstrate a working chat system that searches across 5+ indexed lectures and 10+ auto-scraped resources, returning accurate answers with citations in under 5 seconds.
+
+---
+
+## Problem Statement
+
+### Pain Points (Validated)
+
+#### 1. Time Wasted on Video Scrubbing
+**Problem:** Students spend 30+ minutes trying to find "that one thing the instructor said about Docker" by scrubbing through multiple 2-3 hour videos.
+
+**Current Workaround:** Students take extensive notes during lectures, but this:
+- Divides attention from learning
+- Results in incomplete/inaccurate notes
+- Doesn't help with missed lectures
+- Doesn't capture resources shared verbally
+
+**Impact:** Average student wastes 5+ hours/week on inefficient review methods.
+
+#### 2. Knowledge Fragmentation
+**Problem:** Course content is scattered across:
+- Live lectures (ephemeral)
+- LMS videos (long, unsearchable)
+- Chat logs (lost after session)
+- Instructor-shared links (verbal mentions, no central registry)
+- Student notes (inconsistent, incomplete)
+
+**Impact:** 
+- Students can't find "where X was explained"
+- Resources (GitHub repos, docs) get lost
+- Learning momentum breaks due to inefficient retrieval
+
+#### 3. Cohort-Wide Duplicated Effort
+**Problem:** Multiple students ask the same questions because there's no centralized knowledge retrieval:
+- "Which lecture covered async/await?"
+- "What was that debugging tool mentioned?"
+- "Where's the GitHub repo for the CI/CD example?"
+
+**Impact:**
+- Instructor time wasted answering repetitive questions
+- Forum/Discord filled with duplicates
+- Slower students feel left behind
+
+---
+
+## Solution Overview
+
+### Core Value Proposition
+
+**"Ask anything about your cohort's lectures and resources. Get instant answers with sources."**
+
+### Product Vision: Chat-First Knowledge Interface
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  💬 Ask me anything about your cohort's curriculum...       │
+│  ┌───────────────────────────────────────────────────────┐ │
+│  │ How do Docker volumes persist data across restarts?   │ │
+│  └───────────────────────────────────────────────────────┘ │
+│                                                             │
+│  🤖 Assistant:                                              │
+│  Docker volumes persist data by storing it outside the      │
+│  container's filesystem in a managed location on the host.  │
+│  When containers restart, they remount the same volume,     │
+│  preserving data...                                         │
+│                                                             │
+│  📚 Sources (ranked by relevance):                          │
+│  ────────────────────────────────────────────────────────  │
+│  1. 📹 Lecture 5 - Docker Deep Dive                        │
+│     👤 Siddhanth | 📅 Feb 15, 2024 | Module 2              │
+│     ⏱️  00:23:15 - 00:28:30 (5 mins)                       │
+│     "Volumes are managed by Docker and stored in /var/lib  │
+│      docker/volumes. Unlike bind mounts..."                │
+│     [Jump to video moment] [View full summary]             │
+│                                                             │
+│  2. 📦 GitHub: docker/compose README                       │
+│     🔗 Mentioned in Lecture 5 | Type: Documentation        │
+│     "Compose supports volume syntax with long and short    │
+│      forms. Named volumes are created automatically..."    │
+│     [Open resource] [View excerpt]                         │
+│  ────────────────────────────────────────────────────────  │
+│                                                             │
+│  💡 Related questions:                                      │
+│  • What's the difference between volumes and bind mounts?  │
+│  • How do I backup Docker volumes?                         │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### How It Works (3-Stage Pipeline)
+
+#### Stage 1: Knowledge Ingestion (Admin/Instructor)
+1. Admin uploads lecture VTT transcript + metadata (cohort, module, instructor, date)
+2. System auto-processes:
+   - Skips intro/music (first 5-10 mins)
+   - **Chunks semantically** with overlap to preserve context
+   - Generates embeddings for vector search
+   - Creates **comprehensive timestamped summary** (not just 5 bullets)
+   - Extracts all tools/frameworks mentioned
+
+3. Instructor adds resource URLs (GitHub, YouTube, blogs) mentioned during lecture
+4. System **auto-scrapes** using existing boilerplate:
+   - GitHub: Fetches README via API
+   - YouTube: Extracts transcript/description
+   - Blog: Scrapes article content
+   - Generates summary and embeddings
+   - Links resource to lecture(s) that mentioned it
+
+#### Stage 2: Universal Search (Student Query)
+1. Student asks question in chat (natural language, no keywords needed)
+2. System searches **entire cohort knowledge base** (all lectures + all resources)
+3. **Hybrid ranking** combines:
+   - Vector similarity (semantic matching)
+   - Recency boost (newer content ranked higher)
+   - Instructor/lecture metadata matches
+   - Resource type relevance (docs for "how-to", repos for "example")
+
+4. Returns **top 5 sources** with context snippets
+
+#### Stage 3: Answer Synthesis
+1. LLM receives user query + top 5 source contexts
+2. Generates clear, accurate answer citing sources
+3. UI displays:
+   - Direct answer (synthesized from sources)
+   - Ranked source list with:
+     - Lecture: Title, instructor, date, **timestamp range**, snippet
+     - Resource: Type, URL, mentioned-in lecture, snippet
+   - Suggested follow-up questions
+
+---
+
+## Target Users & Use Cases
+
+### Primary User: Student (Active Learner)
+
+**Profile:**
+- Working professional, 30-45 years old
+- Limited time for review (1-2 hours/day max)
+- Prefers quick answers over long videos
+- Values accuracy and citations
+
+**Key Use Cases:**
+
+#### UC1: Quick Fact Lookup
+**Scenario:** Student working on project, needs to remember specific command syntax.
+
+**Flow:**
+1. Open chat interface
+2. Ask: "What's the docker command to list volumes?"
+3. Get instant answer: `docker volume ls`
+4. See citation: Lecture 5, timestamp 00:24:10
+5. Optionally click to view video moment
+
+**Success Criteria:** Answer in < 5 seconds, correct 90%+ of time
+
+#### UC2: Concept Clarification
+**Scenario:** Student confused about difference between two similar concepts.
+
+**Flow:**
+1. Ask: "What's the difference between threads and processes?"
+2. Get comprehensive answer citing multiple lectures
+3. See timestamps for each concept's explanation
+4. Review video segments if needed
+
+**Success Criteria:** Answer addresses question fully, cites 2+ relevant sources
+
+#### UC3: Resource Retrieval
+**Scenario:** Student remembers instructor mentioned a GitHub repo but can't find it.
+
+**Flow:**
+1. Ask: "What GitHub repo did we use for the CI/CD example?"
+2. Get repo URL + summary
+3. See which lecture mentioned it + timestamp
+4. Click through to GitHub
+
+**Success Criteria:** Finds resource with correct lecture context
+
+#### UC4: Catch-Up After Missing Lecture
+**Scenario:** Student missed live lecture, needs to understand what was covered.
+
+**Flow:**
+1. Ask: "What was covered in the latest Docker lecture?"
+2. Get comprehensive summary with timestamps
+3. Ask follow-up: "Can you explain volumes in more detail?"
+4. Get targeted answer from that lecture
+
+**Success Criteria:** Understands lecture content in 15-20 mins vs 2-3 hours
+
+### Secondary User: Instructor
+
+**Profile:**
+- 100x Engineers teaching staff
+- Teaches 2-4 lectures per week
+- Manages multiple cohorts
+- Wants to reduce repetitive questions
+
+**Key Use Cases:**
+
+#### UC5: Add Resources During Upload
+**Scenario:** Instructor just finished lecture, wants to share resources.
+
+**Flow:**
+1. Admin uploads VTT transcript
+2. Instructor adds resource URLs:
+   - Type: GitHub
+   - URL: https://github.com/docker/compose
+   - System auto-scrapes and indexes
+3. Resources immediately searchable by students
+
+**Success Criteria:** No manual summary entry, scraping completes in < 2 mins
+
+#### UC6: Verify Past Content
+**Scenario:** Student claims "you said X in lecture," instructor wants to verify.
+
+**Flow:**
+1. Instructor asks: "What did I say about Docker networking in Lecture 6?"
+2. Gets timestamped quotes from transcript
+3. Can confirm or clarify
+
+**Success Criteria:** Accurate retrieval of exact quotes with timestamps
+
+### Tertiary User: Admin
+
+**Profile:**
+- Operations team managing LMS
+- Uploads recordings and transcripts
+- Tracks system usage
+
+**Key Use Cases:**
+
+#### UC7: Batch Upload Lectures
+**Scenario:** Admin has 5 new lecture transcripts to process.
+
+**Flow:**
+1. For each lecture:
+   - Select cohort and module from dropdowns
+   - Enter title, instructor, date
+   - Upload VTT file
+2. System processes in background
+3. See processing status per lecture
+4. Notified when all complete
+
+**Success Criteria:** Can queue multiple uploads, clear progress indicators
+
+---
+
+## Core Features (MVP - P0)
+
+### F1: Universal Chat Interface
+**Description:** Simple, clean chat UI where students ask questions and get answers with conversation history.
+
+**Components:**
+- Text input (supports multi-line for complex questions)
+- **Chat history maintained in session** (last 10 messages for context)
+- Message list showing user queries and bot responses
+- Loading state while query processes
+- Answer display with formatted citations
+- Suggested follow-up questions
+
+**Context Management:**
+- Store last 10 messages in React state
+- Pass conversation history to API for context-aware responses
+- Example: "What about volumes?" understands previous Docker question
+- Clear history on logout or manual reset
+
+**Why P0:** This IS the product. Without chat and context, there's nothing.
+
+**Acceptance Criteria:**
+- ✅ Query submitted via Enter or Send button
+- ✅ Response appears in < 5 seconds
+- ✅ Citations clearly separated from answer
+- ✅ Mobile responsive (works on phone)
+- ✅ Follow-up questions understand previous context
+- ✅ Can clear chat history manually
+
+---
+
+### F2: Automatic Lecture Processing
+**Description:** Admin uploads VTT → System auto-processes without manual intervention.
+
+**Processing Steps:**
+1. Parse VTT format (handle edge cases: missing timestamps, special characters)
+2. **Skip VTT sequence numbers** (lines with only digits like "1", "2", "3")
+3. **Intro Detection:** Skip first 10 mins of music/housekeeping (increased from 5 mins)
+4. **Semantic Chunking:** 
+   - Chunk size: 300-800 tokens
+   - Overlap: 50 tokens between chunks
+   - Respect boundaries: Don't split mid-sentence or mid-concept
+   - Preserve timestamp for each chunk
+5. **Embedding Generation:** 
+   - Use OpenAI text-embedding-3-small (1536 dims)
+   - Batch requests (10 chunks at a time) to respect rate limits
+6. **Summary Generation:**
+   - Comprehensive, not just 5 bullets
+   - Timestamped sections (e.g., "Docker Intro: 00:10:00-00:23:15")
+   - Include lecture **title** in metadata for better search relevance
+   - Tools/frameworks list with first mention timestamps
+   - Key takeaways
+7. Store chunks + embeddings in unified knowledge base with lecture title
+
+**Why P0:** Core data ingestion. Without this, no searchable content.
+
+**Acceptance Criteria:**
+- ✅ 2-hour lecture processed in < 3 minutes
+- ✅ Intro successfully detected and skipped
+- ✅ No chunks split mid-sentence
+- ✅ Summary includes timestamps for all major sections
+- ✅ Processing errors logged clearly for admin
+
+---
+
+### F3: Automatic Resource Scraping
+**Description:** Instructor adds resource URL → System auto-scrapes content and indexes it.
+
+**Supported Types:**
+- GitHub: README.md (via Octokit API)
+- YouTube: **Video transcript via youtube-transcript library** (not manual)
+- Blog: Article content (via Cheerio/Playwright)
+- RSS: Feed items
+- Generic: Fallback scraper for other URLs
+
+**Processing Steps:**
+1. **Validate URL** against type-specific patterns
+2. **Scrape content** using appropriate adapter:
+   - GitHub: Octokit API for README
+   - **YouTube: youtube-transcript library for captions/transcript**
+   - Blog: Cheerio/Playwright for article extraction
+   - RSS: rss-parser library
+3. **Chunk content** (same strategy as lectures but without timestamps)
+4. **Generate embeddings** and store in unified knowledge base
+5. **Auto-generate summary** (3-5 sentences via LLM, no manual input)
+6. **Include resource title** in metadata for search relevance
+7. **Link to lecture** that mentioned it
+
+**Why P0:** Instructors verbally share resources during lectures. Without scraping, this knowledge is lost.
+
+**Acceptance Criteria:**
+- ✅ GitHub README scraped successfully
+- ✅ YouTube transcript extracted
+- ✅ Blog article content extracted (handles JS-rendered sites)
+- ✅ Summary auto-generated, no manual input required
+- ✅ Resource searchable immediately after scraping
+
+---
+
+### F4: Unified Knowledge Search (RAG)
+**Description:** Single vector search across ALL content (lectures + resources) with intelligent ranking.
+
+**Search Strategy:**
+1. **Query Embedding:** Convert user question to 1536-dim vector
+2. **Vector Search:** Find top 20 most similar chunks (cosine similarity)
+3. **Hybrid Ranking:** Rerank results by:
+   - Similarity score (primary)
+   - Recency (newer lectures boosted)
+   - Instructor name match (if mentioned in query)
+   - Resource type relevance (docs > repos for "how-to" questions)
+   - Code presence (boost if query is technical)
+4. **Top-K Selection:** Return top 5 sources
+5. **Context Building:** Format sources with metadata for LLM
+
+**Why P0:** The "intelligence" of the system. Poor search = wrong answers.
+
+**Acceptance Criteria:**
+- ✅ Searches both lectures and resources in single query
+- ✅ Results ranked by relevance (not just similarity)
+- ✅ Returns mix of lecture and resource sources when appropriate
+- ✅ Query latency < 3 seconds (vector search + ranking)
+
+---
+
+### F5: Answer Generation with Citations
+**Description:** LLM synthesizes answer from retrieved sources and formats with citations.
+
+**Answer Format:**
+```
+[Direct answer to question, 2-4 sentences]
+
+📚 Sources (ranked by relevance):
+1. [Lecture/Resource name]
+   [Metadata: instructor, date, timestamp OR resource type, URL]
+   [Snippet: 1-2 sentences from source]
+   
+2. [Second source]
+   ...
+```
+
+**Prompt Strategy:**
+- Instruct LLM to answer ONLY from provided sources (prevent hallucination)
+- Include full source context (not just snippets)
+- Require citation format in output
+- Generate 2-3 follow-up question suggestions
+
+**Why P0:** Transforms search results into useful answer. Raw chunks aren't helpful.
+
+**Acceptance Criteria:**
+- ✅ Answer directly addresses user question
+- ✅ Cites specific sources (lecture + timestamp or resource + URL)
+- ✅ Doesn't hallucinate information not in sources
+- ✅ Includes 2-3 relevant follow-up suggestions
+- ✅ Generation latency < 2 seconds
+
+---
+
+### F6: Comprehensive Lecture Summaries
+**Description:** Rich, timestamped summaries for each lecture (not just 5 bullet points).
+
+**Summary Structure:**
+```
+# [Lecture Title]
+Instructor: [Name] | Date: [YYYY-MM-DD] | Duration: [X hrs Y mins] | Module: [Number]
+
+## Executive Overview
+[3-5 sentences covering main goals and outcomes]
+
+## Topics Covered
+
+### 1. [Topic Title] (00:05:00 - 00:23:15)
+**Key Concepts:**
+- [Concept 1 with explanation] (First mentioned: 00:07:30)
+- [Concept 2 with context]
+
+**Technical Details:**
+- [Step-by-step if applicable]
+- [Code examples mentioned]
+- [Configuration shown]
+
+**Tools Mentioned:**
+- Docker CLI (00:12:45) - Purpose: Container management
+- Docker Compose (00:18:20) - Purpose: Multi-container orchestration
+
+**Important Notes:**
+- [Common pitfalls warned about]
+- [Best practices highlighted]
+
+### 2. [Second Topic] (00:23:15 - 00:45:30)
+[Same structure repeats]
+
+## Demonstrations
+- Demo 1: [Description] (Timestamp: 00:35:00, Duration: 5 mins)
+- Demo 2: [Description] (Timestamp: 01:05:30, Duration: 8 mins)
+
+## Resources Shared
+- GitHub: docker/compose (Mentioned at: 00:18:20)
+- Documentation: docs.docker.com (Mentioned at: 00:25:10)
+
+## Key Takeaways
+1. [Most important learning]
+2. [Critical concept to remember]
+3. [Practical application tip]
+```
+
+**Why P0:** Students need rich summaries for catch-up. 5 bullets don't cover 2-3 hour lectures.
+
+**Acceptance Criteria:**
+- ✅ Summary covers ALL major topics (not just highlights)
+- ✅ Every section has timestamp range
+- ✅ All tools/frameworks mentioned are listed with timestamps
+- ✅ Step-by-step processes documented if demonstrated
+- ✅ Resources mentioned are linked with timestamps
+
+---
+
+### F7: Multi-Cohort Authentication & Isolation
+**Description:** Users only see their cohort's content. Admins/instructors see all.
+
+**Security Model:**
+- Email-based login (Supabase Auth)
+- User → Cohort mapping (many-to-many, allows multi-cohort enrollment)
+- Role-based access: student, instructor, admin
+- Row-level security (RLS) enforces cohort boundaries at database level
+
+**Why P0:** Multiple cohorts run simultaneously at different stages. Must prevent data leakage.
+
+**Acceptance Criteria:**
+- ✅ Student sees only their cohort's lectures/resources
+- ✅ Instructor sees all cohorts they teach
+- ✅ Admin sees everything
+- ✅ Database enforces isolation (can't bypass via API)
+- ✅ Login required to access any content
+
+---
+
+### F8: Admin Upload Interface
+**Description:** Simple form for admins to upload lectures and trigger processing.
+
+**Form Fields:**
+- Cohort (dropdown)
+- Module (dropdown, filtered by cohort)
+- Lecture title (text input)
+- Instructor name (text input or dropdown)
+- Lecture date (date picker)
+- VTT file (file upload, .vtt extension only)
+
+**Processing Flow:**
+1. Validate all fields
+2. Upload VTT to Supabase Storage
+3. Trigger background processing job
+4. Show progress bar (chunks processed / total)
+5. Redirect to lecture summary when complete
+
+**Why P0:** Without upload capability, no content enters system.
+
+**Acceptance Criteria:**
+- ✅ Form validates all required fields
+- ✅ Only .vtt files accepted
+- ✅ Progress indicator updates in real-time
+- ✅ Error messages clear if processing fails
+- ✅ Can upload another lecture while one processes
+
+---
+
+### F9: Resource URL Management
+**Description:** Instructors/admins can add resource URLs that auto-scrape and index.
+
+**Add Resource Flow:**
+1. Select resource type (dropdown: GitHub, YouTube, Blog, RSS, Other)
+2. Enter URL
+3. **Validation:** Check URL matches type pattern
+4. Optionally: Link to specific lecture (dropdown)
+5. Mark as global (checkbox) if not lecture-specific
+6. Submit → System scrapes in background
+7. Notify when ready
+
+**Display:**
+- Resource list shows: Type icon, Title, Summary (auto-generated), Mentioned-in lecture(s)
+- Click resource → View full scraped content + snippet
+- Resources searchable via chat immediately after scraping
+
+**Why P0:** Instructors share critical resources during lectures. Must capture and make searchable.
+
+**Acceptance Criteria:**
+- ✅ URL validation prevents invalid submissions
+- ✅ Scraping completes in < 2 mins for typical resource
+- ✅ Summary auto-generated, no manual entry
+- ✅ Resource linked to lecture(s) that mentioned it
+- ✅ Students can find resource via chat query
+
+---
+
+## Non-Functional Requirements
+
+### Performance
+- **Query Response:** < 5 seconds end-to-end (search + LLM generation)
+- **VTT Processing:** < 3 minutes for 2-hour lecture
+- **Resource Scraping:** < 2 minutes for typical GitHub README or blog article
+- **Page Load:** < 2 seconds (chat interface)
+
+### Scalability
+- **Users:** 100-500 concurrent users (MVP)
+- **Lectures:** 200+ lectures per cohort
+- **Cohorts:** 5-10 active simultaneously
+- **Knowledge Base:** 10k-50k chunks across all cohorts
+
+### Reliability
+- **Uptime:** 95% during cohort active hours (9am-9pm IST)
+- **Data Integrity:** All uploads backed up to Supabase Storage
+- **Graceful Degradation:** If LLM API fails, show raw search results
+
+### Security
+- **Authentication:** Email + password (Supabase Auth)
+- **Authorization:** RLS policies enforce cohort isolation
+- **API Keys:** Environment variables, never client-exposed
+- **Input Validation:** All user inputs sanitized (prevent injection)
+
+### Usability
+- **Mobile:** Fully functional on iOS/Android browsers
+- **Accessibility:** Keyboard navigation, proper ARIA labels (post-MVP)
+- **Internationalization:** English only (MVP)
+
+---
+
+## Success Metrics
+
+### MVP Demo Success (Hackathon)
+- ✅ 5 lectures indexed with rich summaries
+- ✅ 10 resources auto-scraped and searchable
+- ✅ 10 test queries return correct answers with citations
+- ✅ 3 demo accounts (different cohorts) functional
+- ✅ Zero breaking bugs during 5-min demo
+
+### Post-Launch Metrics (Week 1-4)
+
+#### Adoption
+- **Target:** 50% of active cohort uses system weekly
+- **Metric:** Unique users / Total cohort size
+
+#### Engagement
+- **Target:** Average 10 queries per user per week
+- **Metric:** Total queries / Active users
+
+#### Answer Quality
+- **Target:** 85% of queries return useful results
+- **Metric:** User feedback (thumbs up/down on answers)
+
+#### Time Savings
+- **Target:** Students report 3+ hours saved per week vs. video scrubbing
+- **Metric:** User survey
+
+---
+
+## Out of Scope (Not MVP)
+
+❌ **Live Transcription** - Only processing pre-recorded VTT files  
+❌ **Video Hosting** - Lectures remain in LMS, we deep-link to them  
+❌ **Assignment/Quiz Integration** - Pure knowledge retrieval  
+❌ **Mobile App** - Web-only  
+❌ **Offline Mode** - Requires internet  
+❌ **Multi-Language** - English transcripts only  
+❌ **Advanced Analytics Dashboard** - Basic usage stats only  
+❌ **Custom Embedding Models** - Using OpenAI text-embedding-3-small  
+❌ **Real-Time Collaboration** - No shared annotations  
+❌ **Lecture Browsing UI** - Chat-first, no lecture library view (for MVP)
+
+---
+
+## Risks & Mitigations
+
+### High Risk
+
+#### R1: Poor Answer Quality (Hallucinations or Irrelevant)
+**Impact:** Users lose trust, stop using system  
+**Probability:** Medium  
+**Mitigation:**
+- Strict prompt engineering ("answer ONLY from sources")
+- Show source snippets so users can verify
+- Implement thumbs up/down feedback
+- Monitor queries that get low ratings
+- Tune retrieval parameters (top-k, similarity threshold)
+
+#### R2: OpenRouter Rate Limits During Demo
+**Impact:** Queries fail during hackathon presentation  
+**Probability:** Medium  
+**Mitigation:**
+- Pre-generate all embeddings before demo
+- Cache common query results in database
+- Have backup LLM model configured
+- Record backup demo video
+
+#### R3: Chunking Splits Critical Information
+**Impact:** Answers incomplete or inaccurate  
+**Probability:** Medium  
+**Mitigation:**
+- Implement overlap (50 tokens) between chunks
+- Respect natural boundaries (sentences, paragraphs)
+- Test with 10+ lectures, verify no mid-concept splits
+- Adjust chunk size based on testing
+
+### Medium Risk
+
+#### R4: Resource Scraping Fails (Site Changes, Auth Required)
+**Impact:** Resources not indexed  
+**Probability:** Medium  
+**Mitigation:**
+- Robust error handling per scraper
+- Log failures with clear error messages
+- Allow manual content paste as fallback
+- Retry logic with exponential backoff
+
+#### R5: Time Overrun (Can't Complete in 20 Hours)
+**Impact:** Missing features at demo  
+**Probability:** High (solo dev, ambitious scope)  
+**Mitigation:**
+- Strict P0 focus (cut P1/P2 ruthlessly)
+- Reuse boilerplate code aggressively
+- Use Cursor AI for code generation
+- Simplify UI (focus on functionality)
+
+---
+
+## Assumptions
+
+1. **VTT Quality:** Transcripts are 90%+ accurate (human-reviewed or high-quality ASR)
+2. **Cohort Structure:** Each cohort follows same module sequence
+3. **User Email Consistency:** Students use same email for registration and login
+4. **Resource Accessibility:** GitHub/YouTube/blogs are publicly accessible (no auth)
+5. **Instructor Adoption:** 2-3 instructors willing to add resources regularly
+6. **LMS Integration Later:** Video deep-linking possible if LMS provides API (post-MVP)
+
+---
+
+## Dependencies
+
+### External Services
+- **Supabase:** Database, Auth, Storage, Vector Search (free tier)
+- **OpenRouter:** LLM (Gemini) and embeddings (OpenAI) (free $5 credits)
+- **Vercel:** Hosting (hobby plan)
+- **GitHub:** Version control
+
+### Internal Prerequisites
+- Access to 100x Engineers LMS (for VTT export)
+- List of cohort names + user emails for initial setup
+- 3-5 sample VTT files for testing
+
+---
+
+## Glossary
+
+**VTT:** WebVTT format, timestamped text tracks for videos  
+**RAG:** Retrieval Augmented Generation - LLM + external knowledge  
+**Embedding:** Numerical vector (1536 dims) representing text semantically  
+**Chunk:** Text segment (300-800 tokens) with metadata (timestamp, lecture ID)  
+**Vector Search:** Finding similar embeddings using distance metrics  
+**Cosine Similarity:** Measure of vector similarity (-1 to 1, higher = more similar)  
+**RLS:** Row-Level Security in PostgreSQL for data isolation  
+**Top-K:** Retrieve top K most similar results (e.g., top 5)  
+**Semantic Chunking:** Splitting text at natural boundaries vs. arbitrary token counts  
+**Reranking:** Re-scoring search results using additional criteria beyond similarity
+
+---
+
+## Appendix
+
+### Sample Queries (Test Cases)
+1. "How do Docker volumes work?"
+2. "What debugging tools did Siddhanth recommend?"
+3. "Explain the CI/CD pipeline we learned"
+4. "Where was FastAPI mentioned?"
+5. "What are the steps to deploy on AWS?"
+6. "Which lecture covered async/await?"
+7. "Difference between threads and processes?"
+8. "How to configure environment variables in Docker?"
+9. "Show me GitHub repos from Module 2"
+10. "When did we learn about database indexing?"
+
+### Reference Documents
+- **Technical Architecture:** See `TECHNICAL_ARCHITECTURE.md`
+- **Database Schema:** See `DATABASE_API_SPEC.md`
+- **Implementation Plan:** See `MASTER_TODO.md`
+- **Development Rules:** See `.cursorrules`
+
+---
+
+**Document Status:** ✅ Ready for Implementation  
+**Next Review:** After Phase 1 completion

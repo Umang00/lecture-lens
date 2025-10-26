@@ -1,0 +1,454 @@
+// frontend-source-management-boilerplate.tsx
+'use client'
+
+import { useState, useEffect, useCallback } from 'react'
+import { useAuth } from '@/components/auth-provider'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Badge } from '@/components/ui/badge'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import {
+  Plus,
+  Rss,
+  Users,
+  Youtube,
+  Github,
+  Settings,
+  Trash2,
+  ArrowLeft,
+  CheckCircle,
+  XCircle,
+  BookOpen,
+  Twitter
+} from 'lucide-react'
+import Link from 'next/link'
+import { apiClient } from '@/lib/api-client'
+
+interface Source {
+  id: string
+  kind: string
+  url: string
+  is_active: boolean
+  created_at: string
+}
+
+// 1. Source Types Configuration
+const sourceTypes = [
+  { value: 'rss', label: 'RSS Feed', icon: Rss, color: 'text-blue-500' },
+  { value: 'reddit', label: 'Reddit', icon: Users, color: 'text-orange-500' },
+  { value: 'youtube', label: 'YouTube', icon: Youtube, color: 'text-red-500' },
+  { value: 'github', label: 'GitHub', icon: Github, color: 'text-gray-500' },
+  { value: 'blog', label: 'Blog', icon: BookOpen, color: 'text-green-500' },
+  { value: 'x', label: 'X (Twitter)', icon: Twitter, color: 'text-sky-500' },
+]
+
+export default function SourcesPage() {
+  const { user } = useAuth()
+  const [sources, setSources] = useState<Source[]>([])
+  const [loading, setLoading] = useState(true)
+  const [showAddForm, setShowAddForm] = useState(false)
+  const [newSource, setNewSource] = useState({
+    kind: '',
+    url: '',
+  })
+  const [validationError, setValidationError] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
+
+  // 2. Validation Functions
+  const validateSourceInput = (kind: string, url: string): string => {
+    if (!kind || !url.trim()) {
+      return 'Please select a source type and enter a URL/handle'
+    }
+
+    const trimmedUrl = url.trim()
+
+    switch (kind) {
+      case 'rss':
+        if (!trimmedUrl.startsWith('http://') && !trimmedUrl.startsWith('https://')) {
+          return 'RSS feed URL must start with http:// or https://'
+        }
+        if (!trimmedUrl.includes('.xml') && !trimmedUrl.includes('/rss') && !trimmedUrl.includes('/feed')) {
+          return 'RSS feed URL should contain .xml, /rss, or /feed'
+        }
+        break
+
+      case 'reddit':
+        if (!trimmedUrl.startsWith('r/')) {
+          return 'Reddit subreddit should start with r/ (e.g., r/OpenAI)'
+        }
+        if (trimmedUrl.includes(' ')) {
+          return 'Reddit subreddit should not contain spaces'
+        }
+        break
+
+      case 'youtube':
+        if (!trimmedUrl.includes('youtube.com') && !trimmedUrl.includes('youtu.be')) {
+          return 'YouTube URL must be a valid YouTube channel or video URL'
+        }
+        break
+
+      case 'github':
+        if (!trimmedUrl.includes('github.com')) {
+          return 'GitHub URL must be a valid GitHub repository URL'
+        }
+        if (!trimmedUrl.includes('/')) {
+          return 'GitHub URL should include repository path (e.g., username/repo)'
+        }
+        break
+
+      case 'blog':
+        if (!trimmedUrl.startsWith('http://') && !trimmedUrl.startsWith('https://')) {
+          return 'Blog URL must start with http:// or https://'
+        }
+        break
+
+      case 'x':
+        if (!trimmedUrl.startsWith('@') && !trimmedUrl.includes('twitter.com') && !trimmedUrl.includes('x.com')) {
+          return 'X/Twitter handle should start with @ or be a valid Twitter URL'
+        }
+        break
+
+      default:
+        return 'Unsupported source type'
+    }
+
+    return ''
+  }
+
+  // 3. API Functions
+  const fetchSources = useCallback(async () => {
+    if (!user) return
+
+    try {
+      const response = await apiClient.getSources()
+      if (response.success) {
+        setSources(response.data || [])
+      } else {
+        console.error('Error fetching sources:', response.error)
+      }
+    } catch (error) {
+      console.error('Error fetching sources:', error)
+    } finally {
+      setLoading(false)
+    }
+  }, [user])
+
+  const handleAddSource = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!user) return
+
+    setValidationError('')
+
+    const validationError = validateSourceInput(newSource.kind, newSource.url)
+    if (validationError) {
+      setValidationError(validationError)
+      return
+    }
+
+    setIsSubmitting(true)
+
+    try {
+      const response = await apiClient.addSource({
+        kind: newSource.kind,
+        url: newSource.url.trim(),
+        name: newSource.url.trim(),
+        isActive: true
+      })
+
+      if (response.success) {
+        setNewSource({ kind: '', url: '' })
+        setShowAddForm(false)
+        setValidationError('')
+        fetchSources()
+      } else {
+        setValidationError(response.error || 'Failed to add source')
+      }
+    } catch (error) {
+      console.error('Error adding source:', error)
+      setValidationError('Failed to add source. Please try again.')
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  const toggleSourceStatus = async (id: string, isActive: boolean) => {
+    try {
+      const response = await apiClient.updateSource(id, { isActive: !isActive })
+      if (response.success) {
+        fetchSources()
+      } else {
+        console.error('Error updating source:', response.error)
+        setValidationError(response.error || 'Failed to update source')
+      }
+    } catch (error) {
+      console.error('Error updating source:', error)
+      setValidationError('Failed to update source')
+    }
+  }
+
+  const deleteSource = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this source?')) return
+
+    try {
+      const response = await apiClient.deleteSource(id)
+      if (response.success) {
+        fetchSources()
+      } else {
+        console.error('Error deleting source:', response.error)
+        setValidationError(response.error || 'Failed to delete source')
+      }
+    } catch (error) {
+      console.error('Error deleting source:', error)
+      setValidationError('Failed to delete source')
+    }
+  }
+
+  // 4. Effects
+  useEffect(() => {
+    if (user) {
+      fetchSources()
+    }
+  }, [user, fetchSources])
+
+  // 5. Helper Functions
+  const getSourceIcon = (kind: string) => {
+    const sourceType = sourceTypes.find(type => type.value === kind)
+    return sourceType?.icon || Settings
+  }
+
+  const getSourceColor = (kind: string) => {
+    const sourceType = sourceTypes.find(type => type.value === kind)
+    return sourceType?.color || 'text-gray-500'
+  }
+
+  const getSourceLabel = (kind: string) => {
+    const sourceType = sourceTypes.find(type => type.value === kind)
+    return sourceType?.label || kind
+  }
+
+  // 6. Render Functions
+  if (loading) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <p className="text-gray-600">Loading sources...</p>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="container mx-auto px-4 py-8">
+      <div className="flex items-center justify-between mb-8">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Content Sources</h1>
+          <p className="text-gray-600 mt-2">
+            Manage your content sources for newsletter generation
+          </p>
+        </div>
+        <Button
+          onClick={() => setShowAddForm(true)}
+          className="bg-blue-600 hover:bg-blue-700"
+        >
+          <Plus className="h-4 w-4 mr-2" />
+          Add Source
+        </Button>
+      </div>
+
+      {validationError && (
+        <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+          <p className="text-red-600">{validationError}</p>
+        </div>
+      )}
+
+      {showAddForm && (
+        <Card className="mb-8">
+          <CardHeader>
+            <CardTitle>Add New Source</CardTitle>
+            <CardDescription>
+              Choose a source type and provide the URL or handle
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleAddSource} className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="kind">Source Type</Label>
+                  <Select
+                    value={newSource.kind}
+                    onValueChange={(value) => setNewSource({ ...newSource, kind: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select source type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {sourceTypes.map((type) => {
+                        const Icon = type.icon
+                        return (
+                          <SelectItem key={type.value} value={type.value}>
+                            <div className="flex items-center">
+                              <Icon className="h-4 w-4 mr-2" />
+                              {type.label}
+                            </div>
+                          </SelectItem>
+                        )
+                      })}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label htmlFor="url">URL or Handle</Label>
+                  <Input
+                    id="url"
+                    type="text"
+                    value={newSource.url}
+                    onChange={(e) => setNewSource({ ...newSource, url: e.target.value })}
+                    placeholder={
+                      newSource.kind === 'reddit' ? 'r/OpenAI' :
+                      newSource.kind === 'youtube' ? 'https://youtube.com/@channel' :
+                      newSource.kind === 'github' ? 'https://github.com/username/repo' :
+                      newSource.kind === 'x' ? '@username' :
+                      'https://example.com/feed.xml'
+                    }
+                  />
+                </div>
+              </div>
+              <div className="flex justify-end space-x-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    setShowAddForm(false)
+                    setNewSource({ kind: '', url: '' })
+                    setValidationError('')
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="bg-blue-600 hover:bg-blue-700"
+                >
+                  {isSubmitting ? 'Adding...' : 'Add Source'}
+                </Button>
+              </div>
+            </form>
+          </CardContent>
+        </Card>
+      )}
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Your Sources</CardTitle>
+          <CardDescription>
+            {sources.length} source{sources.length !== 1 ? 's' : ''} configured
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {sources.length === 0 ? (
+            <div className="text-center py-8">
+              <Settings className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">No sources yet</h3>
+              <p className="text-gray-600 mb-4">
+                Add your first content source to start generating newsletters
+              </p>
+              <Button
+                onClick={() => setShowAddForm(true)}
+                className="bg-blue-600 hover:bg-blue-700"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Add Your First Source
+              </Button>
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Type</TableHead>
+                  <TableHead>URL/Handle</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Added</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {sources.map((source) => {
+                  const Icon = getSourceIcon(source.kind)
+                  const color = getSourceColor(source.kind)
+                  const label = getSourceLabel(source.kind)
+                  
+                  return (
+                    <TableRow key={source.id}>
+                      <TableCell>
+                        <div className="flex items-center">
+                          <Icon className={`h-4 w-4 mr-2 ${color}`} />
+                          <span className="font-medium">{label}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="max-w-xs truncate" title={source.url}>
+                          {source.url}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge
+                          variant={source.is_active ? 'default' : 'secondary'}
+                          className={
+                            source.is_active
+                              ? 'bg-green-100 text-green-800 hover:bg-green-100'
+                              : 'bg-gray-100 text-gray-800 hover:bg-gray-100'
+                          }
+                        >
+                          {source.is_active ? (
+                            <>
+                              <CheckCircle className="h-3 w-3 mr-1" />
+                              Active
+                            </>
+                          ) : (
+                            <>
+                              <XCircle className="h-3 w-3 mr-1" />
+                              Inactive
+                            </>
+                          )}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        {new Date(source.created_at).toLocaleDateString()}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end space-x-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => toggleSourceStatus(source.id, source.is_active)}
+                          >
+                            {source.is_active ? 'Disable' : 'Enable'}
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => deleteSource(source.id)}
+                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  )
+                })}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  )
+}
