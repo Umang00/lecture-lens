@@ -79,12 +79,12 @@ scripts/
 
 ```bash
 # Supabase (Production Ready)
-NEXT_PUBLIC_SUPABASE_URL=https://ovpmjtnprppvvgevaqts.supabase.co
+NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 
 # OpenRouter (AI Services)
-OPENROUTER_API_KEY=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
+OPENROUTER_API_KEY=sk-or-v1-your-key-here
 
 # Application
 NEXT_PUBLIC_APP_URL=http://localhost:3001
