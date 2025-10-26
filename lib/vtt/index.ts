@@ -18,5 +18,21 @@ export {
   parseTimestampLine 
 } from './timestamp-utils';
 
+// Chunking functionality
+export { 
+  chunkVTT, 
+  validateChunkingConfig, 
+  analyzeChunks, 
+  DEFAULT_CHUNKING_CONFIG 
+} from './chunker';
+
+// Token counting utilities
+export { 
+  estimateTokenCount, 
+  isWithinTokenLimit, 
+  truncateToTokenLimit, 
+  countTokensInText 
+} from './token-counter';
+
 // Types
 export type { VTTSegment, Chunk, ChunkingConfig, ParsedVTT } from './types';
