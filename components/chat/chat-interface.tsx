@@ -10,6 +10,7 @@ export interface Message {
   role: 'user' | 'assistant';
   content: string;
   sources?: Source[];
+  suggestedFollowUps?: string[];
   timestamp: Date;
 }
 
@@ -78,6 +79,7 @@ export function ChatInterface() {
         role: 'assistant',
         content: data.answer,
         sources: data.sources,
+        suggestedFollowUps: data.suggestedFollowUps,
         timestamp: new Date()
       };
       setMessages(prev => [...prev, botMsg]);
@@ -127,6 +129,7 @@ export function ChatInterface() {
           messages={messages} 
           isLoading={isLoading}
           error={error}
+          onFollowUpClick={sendMessage}
         />
       </div>
 

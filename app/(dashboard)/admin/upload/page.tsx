@@ -28,13 +28,15 @@ export default function AdminUploadPage() {
     title: '',
     instructor: '',
     date: '',
-    file: null as File | null
+    file: null as File | null,
+    resourceUrls: [] as string[]
   });
   
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const [newResourceUrl, setNewResourceUrl] = useState('');
 
   // Check if user is admin
   useEffect(() => {
@@ -90,6 +92,23 @@ export default function AdminUploadPage() {
     }
   };
 
+  const addResourceUrl = () => {
+    if (newResourceUrl.trim() && !formData.resourceUrls.includes(newResourceUrl.trim())) {
+      setFormData({
+        ...formData,
+        resourceUrls: [...formData.resourceUrls, newResourceUrl.trim()]
+      });
+      setNewResourceUrl('');
+    }
+  };
+
+  const removeResourceUrl = (index: number) => {
+    setFormData({
+      ...formData,
+      resourceUrls: formData.resourceUrls.filter((_, i) => i !== index)
+    });
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -110,6 +129,11 @@ export default function AdminUploadPage() {
       uploadData.append('title', formData.title);
       uploadData.append('instructor', formData.instructor);
       uploadData.append('lectureDate', formData.date);
+      
+      // Add resource URLs
+      formData.resourceUrls.forEach((url, index) => {
+        uploadData.append(`resourceUrls[${index}]`, url);
+      });
 
       // Upload file
       const response = await fetch('/api/vtt/upload', {
@@ -295,6 +319,57 @@ export default function AdminUploadPage() {
           />
           <p className="text-sm text-gray-500 mt-1">
             Upload a .vtt (WebVTT) transcript file
+          </p>
+        </div>
+
+        {/* Resource URLs */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Related Resources (Optional)
+          </label>
+          
+          {/* Add new resource URL */}
+          <div className="flex space-x-2 mb-3">
+            <input
+              type="url"
+              value={newResourceUrl}
+              onChange={(e) => setNewResourceUrl(e.target.value)}
+              placeholder="https://github.com/example/repo"
+              className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              disabled={uploading}
+            />
+            <button
+              type="button"
+              onClick={addResourceUrl}
+              disabled={uploading || !newResourceUrl.trim()}
+              className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
+            >
+              Add
+            </button>
+          </div>
+
+          {/* List of added resource URLs */}
+          {formData.resourceUrls.length > 0 && (
+            <div className="space-y-2">
+              <p className="text-sm text-gray-600">Added Resources:</p>
+              {formData.resourceUrls.map((url, index) => (
+                <div key={index} className="flex items-center justify-between bg-gray-50 p-2 rounded">
+                  <span className="text-sm text-gray-700 truncate">{url}</span>
+                  <button
+                    type="button"
+                    onClick={() => removeResourceUrl(index)}
+                    disabled={uploading}
+                    className="ml-2 text-red-600 hover:text-red-800 text-sm"
+                  >
+                    Remove
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+          
+          <p className="text-sm text-gray-500 mt-1">
+            Add GitHub repos, YouTube videos, blog posts, or other resources related to this lecture
           </p>
         </div>
 

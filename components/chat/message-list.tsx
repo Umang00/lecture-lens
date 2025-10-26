@@ -7,9 +7,10 @@ interface MessageListProps {
   messages: Message[];
   isLoading: boolean;
   error: string | null;
+  onFollowUpClick?: (followUp: string) => void;
 }
 
-export function MessageList({ messages, isLoading, error }: MessageListProps) {
+export function MessageList({ messages, isLoading, error, onFollowUpClick }: MessageListProps) {
   if (messages.length === 0 && !isLoading && !error) {
     return (
       <div className="flex-1 flex items-center justify-center p-8">
@@ -57,6 +58,24 @@ export function MessageList({ messages, isLoading, error }: MessageListProps) {
                 <div className="space-y-2">
                   {message.sources.map((source, sourceIndex) => (
                     <SourceCard key={sourceIndex} source={source} />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Follow-up questions for assistant messages */}
+            {message.role === 'assistant' && message.suggestedFollowUps && message.suggestedFollowUps.length > 0 && (
+              <div className="mt-4 pt-4 border-t border-gray-200">
+                <h4 className="text-sm font-medium text-gray-700 mb-3">Suggested follow-ups:</h4>
+                <div className="flex flex-wrap gap-2">
+                  {message.suggestedFollowUps.map((followUp, followUpIndex) => (
+                    <button
+                      key={followUpIndex}
+                      onClick={() => onFollowUpClick?.(followUp)}
+                      className="px-3 py-1 text-xs bg-blue-100 text-blue-800 rounded-full hover:bg-blue-200 transition-colors"
+                    >
+                      {followUp}
+                    </button>
                   ))}
                 </div>
               </div>
