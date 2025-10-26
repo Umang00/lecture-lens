@@ -83,7 +83,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 5. Verify user has access to cohort
+    // 5. Check if user is admin or instructor (ONLY they can upload lectures)
     if (!user) {
       return NextResponse.json(
         { error: 'User not found' },
@@ -91,13 +91,25 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { data: userCohorts, error: cohortError } = await supabaseAdmin
+    const { data: userRole, error: roleError } = await supabaseAdmin
       .from('user_cohorts')
-      .select('cohort_id')
+      .select('role, cohort_id')
       .eq('user_id', user.id)
-      .eq('cohort_id', cohortId);
+      .in('role', ['admin', 'instructor']);
 
-    if (cohortError || !userCohorts || userCohorts.length === 0) {
+    if (roleError || !userRole || userRole.length === 0) {
+      return NextResponse.json(
+        {
+          error: 'Insufficient permissions',
+          details: 'Only instructors and admins can upload lectures'
+        },
+        { status: 403 }
+      );
+    }
+
+    // 6. Verify user has access to this specific cohort
+    const hasAccessToCohort = userRole.some(uc => uc.cohort_id === cohortId);
+    if (!hasAccessToCohort) {
       return NextResponse.json(
         { error: 'Access denied to this cohort' },
         { status: 403 }

@@ -419,11 +419,55 @@ function estimateTokensUsed(chunks: Chunk[]): number {
 function calculateConfidence(sections: Section[], tools: Tool[], takeaways: string[]): number {
   // Simple confidence calculation based on completeness
   let confidence = 0;
-  
+
   if (sections.length > 0) confidence += 0.4;
   if (tools.length > 0) confidence += 0.2;
   if (takeaways.length > 0) confidence += 0.2;
   if (sections.some(s => s.keyConcepts.length > 0)) confidence += 0.2;
-  
+
   return Math.min(confidence, 1.0);
+}
+
+/**
+ * Generates a concise summary for a resource (3-5 sentences)
+ * @param content Resource content
+ * @param title Resource title
+ * @returns Summary text
+ */
+export async function generateResourceSummary(
+  content: string,
+  title: string
+): Promise<string> {
+  const client = createOpenRouterClient();
+  const model = 'gemini-2.0-flash-exp';
+
+  console.log(`📝 Generating summary for resource: ${title}`);
+
+  // Limit content to avoid token limits
+  const truncatedContent = content.substring(0, 6000);
+
+  const prompt = `Create a concise 3-5 sentence summary of this resource. Focus on:
+1. What the resource is about
+2. Key topics covered
+3. Who would find it useful
+4. Main takeaways
+
+Resource Title: ${title}
+
+Content:
+${truncatedContent}
+
+Provide a clear, informative summary that helps users decide if they want to read this resource.`;
+
+  const response = await client.chat.completions.create({
+    model,
+    messages: [{ role: 'user', content: prompt }],
+    temperature: 0.3,
+    max_tokens: 300
+  });
+
+  const summary = response.choices[0].message.content;
+  console.log(`✅ Generated resource summary (${summary.length} chars)`);
+
+  return summary;
 }

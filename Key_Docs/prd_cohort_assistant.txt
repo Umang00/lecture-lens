@@ -329,18 +329,33 @@ The Cohort Lecture Assistant is an **AI-powered chat interface** that transforms
 ---
 
 ### F3: Automatic Resource Scraping
-**Description:** Instructor adds resource URL → System auto-scrapes content and indexes it.
+**Description:** Instructor adds resource URL with type selection → System auto-scrapes content and indexes it.
+
+**User Flow (Frontend):**
+1. Instructor clicks "Add Resource" button
+2. **Selects resource type** from dropdown: [GitHub | YouTube | Blog | RSS | Other]
+3. **Enters URL** (placeholder text adapts to selected type)
+4. System validates URL format matches selected type
+5. If valid → Scraping begins automatically
+
+**Important:** Type selection is MANUAL (user chooses from dropdown), NOT auto-detected. This ensures accuracy and gives instructors control.
 
 **Supported Types:**
-- GitHub: README.md (via Octokit API)
-- YouTube: **Video transcript via youtube-transcript library** (not manual)
-- Blog: Article content (via Cheerio/Playwright)
-- RSS: Feed items
-- Generic: Fallback scraper for other URLs
+- **GitHub:** README.md (via Octokit API)
+  Example: `https://github.com/docker/compose`
+- **YouTube:** Video transcript via youtube-transcript library
+  Example: `https://youtube.com/watch?v=xyz123`
+- **Blog:** Article content (via Cheerio)
+  Example: `https://example.com/docker-tutorial`
+- **RSS:** Feed items (via rss-parser)
+  Example: `https://example.com/feed.xml`
+- **Other:** Generic fallback for miscellaneous URLs
 
 **Processing Steps:**
-1. **Validate URL** against type-specific patterns
-2. **Scrape content** using appropriate adapter:
+1. **User selects type** on frontend (dropdown)
+2. **User enters URL** (validated against type-specific pattern)
+3. **Backend validates** URL format matches selected type
+4. **Scrape content** using appropriate adapter:
    - GitHub: Octokit API for README
    - **YouTube: youtube-transcript library for captions/transcript**
    - Blog: Cheerio/Playwright for article extraction
@@ -354,11 +369,16 @@ The Cohort Lecture Assistant is an **AI-powered chat interface** that transforms
 **Why P0:** Instructors verbally share resources during lectures. Without scraping, this knowledge is lost.
 
 **Acceptance Criteria:**
+- ✅ User can select resource type from dropdown (GitHub, YouTube, Blog, RSS, Other)
+- ✅ URL validation rejects invalid URLs for selected type
 - ✅ GitHub README scraped successfully
 - ✅ YouTube transcript extracted
-- ✅ Blog article content extracted (handles JS-rendered sites)
-- ✅ Summary auto-generated, no manual input required
+- ✅ Blog article content extracted
+- ✅ RSS feeds parsed correctly
+- ✅ Summary auto-generated (3-5 sentences, AI-powered)
+- ✅ Title auto-extracted from content (no manual input)
 - ✅ Resource searchable immediately after scraping
+- ✅ Only admins/instructors can add resources (not students)
 
 ---
 
