@@ -113,7 +113,7 @@ export function ChatInterface() {
       <div className="flex items-center justify-between p-4 border-b border-gray-200">
         <div>
           <h2 className="text-lg font-semibold text-gray-900">Ask me anything about your cohort's curriculum</h2>
-          <p className="text-sm text-gray-500">Get instant answers with timestamped citations from lectures and resources</p>
+          <p className="text-sm text-gray-600">Get instant answers with timestamped citations from lectures and resources</p>
         </div>
         <button
           onClick={clearHistory}

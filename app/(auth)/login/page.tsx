@@ -4,6 +4,11 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/components/auth/auth-provider';
 import Link from 'next/link';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Mail, Lock, AlertCircle } from 'lucide-react';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -31,84 +36,93 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <div className="max-w-md w-full space-y-8 p-8 bg-white rounded-lg shadow-md">
-        <div>
-          <h2 className="text-center text-3xl font-bold text-gray-900">
+      <Card className="w-full max-w-md">
+        <CardHeader className="text-center">
+          <CardTitle className="text-3xl font-bold text-gray-900">
             Lecture Lens
-          </h2>
-          <p className="mt-2 text-center text-sm text-gray-600">
+          </CardTitle>
+          <CardDescription className="text-gray-600">
             Sign in to your account
-          </p>
-        </div>
+          </CardDescription>
+        </CardHeader>
+        
+        <CardContent>
+          <form className="space-y-6" onSubmit={handleSubmit}>
+            {error && (
+              <div className="flex items-center gap-2 p-4 bg-red-50 border border-red-200 text-red-800 rounded-lg">
+                <AlertCircle className="h-4 w-4" />
+                <span className="text-sm font-medium">{error}</span>
+              </div>
+            )}
 
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-          {error && (
-            <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded">
-              {error}
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="email" className="text-gray-900">
+                  Email address
+                </Label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <Input
+                    id="email"
+                    name="email"
+                    type="email"
+                    autoComplete="email"
+                    required
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="pl-10"
+                    placeholder="student@cohort5.com"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="password" className="text-gray-900">
+                  Password
+                </Label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <Input
+                    id="password"
+                    name="password"
+                    type="password"
+                    autoComplete="current-password"
+                    required
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="pl-10"
+                    placeholder="demo123"
+                  />
+                </div>
+              </div>
             </div>
-          )}
 
-          <div className="space-y-4">
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-                Email address
-              </label>
-              <input
-                id="email"
-                name="email"
-                type="email"
-                autoComplete="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                placeholder="student@cohort5.com"
-              />
-            </div>
-
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700">
-                Password
-              </label>
-              <input
-                id="password"
-                name="password"
-                type="password"
-                autoComplete="current-password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                placeholder="demo123"
-              />
-            </div>
-          </div>
-
-          <div>
-            <button
+            <Button
               type="submit"
               disabled={loading}
-              className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white"
             >
               {loading ? 'Signing in...' : 'Sign in'}
-            </button>
-          </div>
+            </Button>
 
-          <div className="text-sm text-center">
-            <span className="text-gray-600">Don't have an account? </span>
-            <Link href="/signup" className="font-medium text-blue-600 hover:text-blue-500">
-              Sign up
-            </Link>
-          </div>
-        </form>
+            <div className="text-sm text-center">
+              <span className="text-gray-600">Don't have an account? </span>
+              <Link href="/signup" className="font-medium text-blue-600 hover:text-blue-500">
+                Sign up
+              </Link>
+            </div>
+          </form>
 
-        <div className="mt-6 text-xs text-gray-500 text-center">
-          <p className="font-semibold mb-2">Demo Credentials:</p>
-          <p>Student: student@cohort5.com / demo123</p>
-          <p>Instructor: instructor@cohort5.com / demo123</p>
-          <p>Admin: admin@100x.com / demo123</p>
-        </div>
-      </div>
+          <div className="mt-6 p-4 bg-gray-50 rounded-lg">
+            <p className="text-xs font-semibold text-gray-700 mb-2 text-center">Demo Credentials:</p>
+            <div className="text-xs text-gray-600 space-y-1">
+              <p>Student: student@cohort5.com / demo123</p>
+              <p>Instructor: instructor@cohort5.com / demo123</p>
+              <p>Admin: admin@100x.com / demo123</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

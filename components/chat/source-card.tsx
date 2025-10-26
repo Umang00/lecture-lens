@@ -110,7 +110,7 @@ export function SourceCard({ source }: SourceCardProps) {
             </div>
           )}
           
-          <p className="text-xs text-gray-600 line-clamp-3">
+          <p className="text-xs text-gray-700 line-clamp-3">
             {source.text}
           </p>
           

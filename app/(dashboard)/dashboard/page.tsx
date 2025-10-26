@@ -23,7 +23,7 @@ export default function DashboardPage() {
                 <div className="flex items-center space-x-4">
                   <Link
                     href="/dashboard"
-                    className="text-sm font-medium text-gray-700 hover:text-gray-900"
+                    className="text-sm font-medium text-gray-900 hover:text-gray-700"
                   >
                     Chat
                   </Link>
@@ -32,14 +32,14 @@ export default function DashboardPage() {
                     <>
                       <Link
                         href="/admin/upload"
-                        className="text-sm font-medium text-gray-700 hover:text-gray-900"
+                        className="text-sm font-medium text-gray-900 hover:text-gray-700"
                         data-testid="upload-lecture-button"
                       >
                         Upload Lecture
                       </Link>
                       <Link
                         href="/admin/resources"
-                        className="text-sm font-medium text-gray-700 hover:text-gray-900"
+                        className="text-sm font-medium text-gray-900 hover:text-gray-700"
                         data-testid="manage-resources-button"
                       >
                         Manage Resources
@@ -50,7 +50,7 @@ export default function DashboardPage() {
                   {userRole?.role === 'instructor' && (
                     <Link
                       href="/instructor/resources"
-                      className="text-sm font-medium text-gray-700 hover:text-gray-900"
+                      className="text-sm font-medium text-gray-900 hover:text-gray-700"
                       data-testid="add-resource-button"
                     >
                       Add Resources

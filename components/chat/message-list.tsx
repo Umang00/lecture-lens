@@ -21,8 +21,8 @@ export function MessageList({ messages, isLoading, error, onFollowUpClick }: Mes
             </svg>
           </div>
           <h3 className="text-lg font-medium text-gray-900 mb-2">Welcome to Lecture Lens!</h3>
-          <p className="text-gray-500 mb-4">Ask me anything about your cohort's lectures and resources.</p>
-          <div className="text-sm text-gray-400">
+          <p className="text-gray-600 mb-4">Ask me anything about your cohort's lectures and resources.</p>
+          <div className="text-sm text-gray-500">
             <p>Try asking:</p>
             <ul className="mt-2 space-y-1">
               <li>• "How do Docker volumes work?"</li>
@@ -54,7 +54,7 @@ export function MessageList({ messages, isLoading, error, onFollowUpClick }: Mes
             {/* Sources for assistant messages */}
             {message.role === 'assistant' && message.sources && message.sources.length > 0 && (
               <div className="mt-4 pt-4 border-t border-gray-200">
-                <h4 className="text-sm font-medium text-gray-700 mb-3">Sources:</h4>
+                <h4 className="text-sm font-medium text-gray-900 mb-3">Sources:</h4>
                 <div className="space-y-2">
                   {message.sources.map((source, sourceIndex) => (
                     <SourceCard key={sourceIndex} source={source} />
@@ -66,7 +66,7 @@ export function MessageList({ messages, isLoading, error, onFollowUpClick }: Mes
             {/* Follow-up questions for assistant messages */}
             {message.role === 'assistant' && message.suggestedFollowUps && message.suggestedFollowUps.length > 0 && (
               <div className="mt-4 pt-4 border-t border-gray-200">
-                <h4 className="text-sm font-medium text-gray-700 mb-3">Suggested follow-ups:</h4>
+                <h4 className="text-sm font-medium text-gray-900 mb-3">Suggested follow-ups:</h4>
                 <div className="flex flex-wrap gap-2">
                   {message.suggestedFollowUps.map((followUp, followUpIndex) => (
                     <button

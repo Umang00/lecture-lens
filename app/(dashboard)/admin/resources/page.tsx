@@ -3,6 +3,11 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/components/auth/auth-provider';
 import { useRouter } from 'next/navigation';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Github, Youtube, BookOpen, Rss, Trash2, Plus, Settings, ExternalLink } from 'lucide-react';
 
 interface Resource {
   id: string;
@@ -12,6 +17,14 @@ interface Resource {
   is_global: boolean;
   created_at: string;
 }
+
+// Resource type configuration
+const resourceTypes = [
+  { value: 'github', label: 'GitHub', icon: Github, color: 'text-gray-600' },
+  { value: 'youtube', label: 'YouTube', icon: Youtube, color: 'text-red-500' },
+  { value: 'blog', label: 'Blog', icon: BookOpen, color: 'text-green-500' },
+  { value: 'rss', label: 'RSS', icon: Rss, color: 'text-blue-500' },
+];
 
 export default function AdminResourcesPage() {
   const { userRole } = useAuth();
@@ -70,88 +83,161 @@ export default function AdminResourcesPage() {
     }
   };
 
+  const getResourceIcon = (type: string) => {
+    const resourceType = resourceTypes.find(t => t.value === type);
+    return resourceType?.icon || Settings;
+  };
+
+  const getResourceColor = (type: string) => {
+    const resourceType = resourceTypes.find(t => t.value === type);
+    return resourceType?.color || 'text-gray-500';
+  };
+
   if (userRole && userRole.role !== 'admin') {
     return null;
   }
 
   return (
-    <div className="max-w-6xl mx-auto p-6">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">Manage Resources</h1>
-        <button
+    <div className="container mx-auto px-4 py-8 max-w-6xl">
+      <div className="flex items-center justify-between mb-8">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Manage Resources</h1>
+          <p className="text-gray-600 mt-2">
+            View and manage all learning resources
+          </p>
+        </div>
+        <Button
           onClick={() => router.push('/instructor/resources')}
-          className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
+          className="bg-blue-600 hover:bg-blue-700 text-white"
         >
+          <Plus className="h-4 w-4 mr-2" />
           Add New Resource
-        </button>
+        </Button>
       </div>
 
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-4">
-          {error}
+        <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+          <p className="text-red-700 font-medium">{error}</p>
         </div>
       )}
 
       {loading ? (
-        <div className="text-center py-12">
-          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-          <p className="mt-2 text-gray-600">Loading resources...</p>
-        </div>
+        <Card>
+          <CardContent className="py-12">
+            <div className="flex items-center justify-center">
+              <div className="text-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                <p className="text-gray-600">Loading resources...</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       ) : resources.length === 0 ? (
-        <div className="text-center py-12 bg-gray-50 rounded-lg">
-          <p className="text-gray-600">No resources found</p>
-          <button
-            onClick={() => router.push('/instructor/resources')}
-            className="mt-4 text-blue-600 hover:text-blue-700"
-          >
-            Add your first resource
-          </button>
-        </div>
+        <Card>
+          <CardContent className="py-12">
+            <div className="text-center">
+              <Settings className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">No resources found</h3>
+              <p className="text-gray-600 mb-4">
+                Get started by adding your first learning resource
+              </p>
+              <Button
+                onClick={() => router.push('/instructor/resources')}
+                className="bg-blue-600 hover:bg-blue-700 text-white"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Add Your First Resource
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
       ) : (
-        <div className="bg-white shadow overflow-hidden sm:rounded-md">
-          <ul className="divide-y divide-gray-200">
-            {resources.map((resource) => (
-              <li key={resource.id} className="px-6 py-4 hover:bg-gray-50">
-                <div className="flex items-center justify-between">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center space-x-3">
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                        {resource.type}
-                      </span>
-                      {resource.is_global && (
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                          Global
+        <Card>
+          <CardHeader>
+            <CardTitle>All Resources</CardTitle>
+            <CardDescription>
+              {resources.length} resource{resources.length !== 1 ? 's' : ''} configured
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Type</TableHead>
+                  <TableHead>Title</TableHead>
+                  <TableHead>URL</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Added</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {resources.map((resource) => {
+                  const Icon = getResourceIcon(resource.type);
+                  const color = getResourceColor(resource.type);
+                  
+                  return (
+                    <TableRow key={resource.id}>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <Icon className={`h-4 w-4 ${color}`} />
+                          <span className="font-medium capitalize">{resource.type}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="font-medium text-gray-900">
+                          {resource.title || 'Untitled'}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <a
+                            href={resource.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-600 hover:text-blue-800 text-sm truncate max-w-xs"
+                          >
+                            {resource.url}
+                          </a>
+                          <ExternalLink className="h-3 w-3 text-gray-400" />
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <Badge
+                            variant={resource.is_global ? 'default' : 'secondary'}
+                            className={
+                              resource.is_global
+                                ? 'bg-green-100 text-green-800 hover:bg-green-100'
+                                : 'bg-gray-100 text-gray-800 hover:bg-gray-100'
+                            }
+                          >
+                            {resource.is_global ? 'Global' : 'Local'}
+                          </Badge>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <span className="text-sm text-gray-600">
+                          {new Date(resource.created_at).toLocaleDateString()}
                         </span>
-                      )}
-                    </div>
-                    <h3 className="mt-2 text-sm font-medium text-gray-900">
-                      {resource.title || 'Untitled'}
-                    </h3>
-                    <a
-                      href={resource.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="mt-1 text-sm text-blue-600 hover:text-blue-800 truncate block"
-                    >
-                      {resource.url}
-                    </a>
-                    <p className="mt-1 text-xs text-gray-500">
-                      Added {new Date(resource.created_at).toLocaleDateString()}
-                    </p>
-                  </div>
-                  <div className="ml-4 flex-shrink-0">
-                    <button
-                      onClick={() => handleDelete(resource.id)}
-                      className="text-red-600 hover:text-red-800 text-sm font-medium"
-                    >
-                      Delete
-                    </button>
-                  </div>
-                </div>
-              </li>
-            ))}
-          </ul>
-        </div>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleDelete(resource.id)}
+                          className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
       )}
     </div>
   );

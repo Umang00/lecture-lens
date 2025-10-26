@@ -1,51 +1,67 @@
 'use client';
 
 import Link from 'next/link';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Mail, Users, Shield, Info, ArrowLeft } from 'lucide-react';
 
 export default function SignupDisabledPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <div className="max-w-md w-full space-y-8 p-8 bg-white rounded-lg shadow-md">
-        <div className="text-center">
-          <h2 className="text-3xl font-bold text-gray-900">
+      <Card className="w-full max-w-md">
+        <CardHeader className="text-center">
+          <CardTitle className="text-3xl font-bold text-gray-900">
             Registration Closed
-          </h2>
-          <div className="mt-6 text-left space-y-4">
-            <div className="bg-blue-50 border border-blue-200 rounded-md p-4">
-              <p className="text-sm font-semibold text-blue-900 mb-2">
-                📧 How to Get Access
+          </CardTitle>
+          <CardDescription className="text-gray-600">
+            Lecture Lens uses invite-only access for security
+          </CardDescription>
+        </CardHeader>
+        
+        <CardContent className="space-y-6">
+          <div className="flex items-center gap-2 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <Mail className="h-4 w-4 text-blue-600" />
+            <div>
+              <p className="text-sm font-semibold text-blue-900 mb-1">
+                How to Get Access
               </p>
               <p className="text-sm text-blue-800">
-                Lecture Lens uses invite-only access to maintain security and cohort isolation.
+                Contact your cohort admin or instructor to request access.
               </p>
             </div>
+          </div>
 
-            <div className="bg-gray-50 border border-gray-200 rounded-md p-4">
-              <p className="text-sm font-semibold text-gray-900 mb-2">
-                For Students:
-              </p>
+          <div className="space-y-4">
+            <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg">
+              <div className="flex items-center gap-2 mb-2">
+                <Users className="h-4 w-4 text-gray-600" />
+                <p className="text-sm font-semibold text-gray-900">For Students</p>
+              </div>
               <p className="text-sm text-gray-700">
                 Contact your cohort admin or instructor to request access.
                 They will create an account and assign you to your cohort.
               </p>
             </div>
 
-            <div className="bg-gray-50 border border-gray-200 rounded-md p-4">
-              <p className="text-sm font-semibold text-gray-900 mb-2">
-                For Admins:
-              </p>
-              <p className="text-sm text-gray-700">
+            <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg">
+              <div className="flex items-center gap-2 mb-2">
+                <Shield className="h-4 w-4 text-gray-600" />
+                <p className="text-sm font-semibold text-gray-900">For Admins</p>
+              </div>
+              <p className="text-sm text-gray-700 mb-2">
                 Create user accounts via the admin panel or seed script:
               </p>
-              <code className="block mt-2 text-xs bg-gray-900 text-green-400 p-2 rounded">
+              <code className="block text-xs bg-gray-900 text-green-400 p-2 rounded font-mono">
                 npm run seed
               </code>
             </div>
 
-            <div className="bg-yellow-50 border border-yellow-200 rounded-md p-4">
-              <p className="text-sm font-semibold text-yellow-900 mb-2">
-                🎯 Demo Access
-              </p>
+            <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+              <div className="flex items-center gap-2 mb-2">
+                <Info className="h-4 w-4 text-yellow-600" />
+                <p className="text-sm font-semibold text-yellow-900">Demo Access</p>
+              </div>
               <p className="text-sm text-yellow-800 mb-2">
                 For demo purposes, use these test accounts:
               </p>
@@ -57,26 +73,24 @@ export default function SignupDisabledPage() {
             </div>
           </div>
 
-          <div className="mt-6">
-            <Link
-              href="/login"
-              className="inline-flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-            >
+          <Button asChild className="w-full bg-blue-600 hover:bg-blue-700 text-white">
+            <Link href="/login">
+              <ArrowLeft className="h-4 w-4 mr-2" />
               Go to Login
             </Link>
-          </div>
-        </div>
+          </Button>
 
-        <div className="mt-6 text-xs text-gray-500 text-center border-t pt-4">
-          <p className="font-semibold mb-2">Why Invite-Only?</p>
-          <ul className="text-left space-y-1 text-gray-600">
-            <li>• Prevents unauthorized access to cohort data</li>
-            <li>• Maintains Row-Level Security (RLS) integrity</li>
-            <li>• Ensures users are properly assigned to cohorts</li>
-            <li>• Protects lecture content and resources</li>
-          </ul>
-        </div>
-      </div>
+          <div className="p-4 bg-gray-50 rounded-lg">
+            <p className="text-xs font-semibold text-gray-700 mb-2 text-center">Why Invite-Only?</p>
+            <ul className="text-xs space-y-1 text-gray-600">
+              <li>• Prevents unauthorized access to cohort data</li>
+              <li>• Maintains Row-Level Security (RLS) integrity</li>
+              <li>• Ensures users are properly assigned to cohorts</li>
+              <li>• Protects lecture content and resources</li>
+            </ul>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }
