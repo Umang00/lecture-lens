@@ -1,136 +1,80 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { useAuth } from '@/components/auth/auth-provider';
 import Link from 'next/link';
 
-export default function SignupPage() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState(false);
-
-  const { signUp } = useAuth();
-  const router = useRouter();
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-    setLoading(true);
-
-    const { error } = await signUp(email, password);
-
-    if (error) {
-      setError(error.message);
-      setLoading(false);
-    } else {
-      setSuccess(true);
-      setLoading(false);
-      // Note: User will need to verify email before logging in
-      setTimeout(() => router.push('/login'), 3000);
-    }
-  };
-
-  if (success) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="max-w-md w-full space-y-8 p-8 bg-white rounded-lg shadow-md">
-          <div className="text-center">
-            <div className="text-green-600 text-6xl mb-4">✓</div>
-            <h2 className="text-2xl font-bold text-gray-900">
-              Account Created!
-            </h2>
-            <p className="mt-2 text-sm text-gray-600">
-              Check your email to verify your account.
-            </p>
-            <p className="mt-4 text-sm text-gray-500">
-              Redirecting to login...
-            </p>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
+export default function SignupDisabledPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
       <div className="max-w-md w-full space-y-8 p-8 bg-white rounded-lg shadow-md">
-        <div>
-          <h2 className="text-center text-3xl font-bold text-gray-900">
-            Create Account
+        <div className="text-center">
+          <h2 className="text-3xl font-bold text-gray-900">
+            Registration Closed
           </h2>
-          <p className="mt-2 text-center text-sm text-gray-600">
-            Sign up for Lecture Lens
-          </p>
-        </div>
-
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-          {error && (
-            <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded">
-              {error}
-            </div>
-          )}
-
-          <div className="space-y-4">
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-                Email address
-              </label>
-              <input
-                id="email"
-                name="email"
-                type="email"
-                autoComplete="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-              />
-            </div>
-
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700">
-                Password
-              </label>
-              <input
-                id="password"
-                name="password"
-                type="password"
-                autoComplete="new-password"
-                required
-                minLength={6}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-              />
-              <p className="mt-1 text-xs text-gray-500">
-                Minimum 6 characters
+          <div className="mt-6 text-left space-y-4">
+            <div className="bg-blue-50 border border-blue-200 rounded-md p-4">
+              <p className="text-sm font-semibold text-blue-900 mb-2">
+                📧 How to Get Access
+              </p>
+              <p className="text-sm text-blue-800">
+                Lecture Lens uses invite-only access to maintain security and cohort isolation.
               </p>
             </div>
+
+            <div className="bg-gray-50 border border-gray-200 rounded-md p-4">
+              <p className="text-sm font-semibold text-gray-900 mb-2">
+                For Students:
+              </p>
+              <p className="text-sm text-gray-700">
+                Contact your cohort admin or instructor to request access.
+                They will create an account and assign you to your cohort.
+              </p>
+            </div>
+
+            <div className="bg-gray-50 border border-gray-200 rounded-md p-4">
+              <p className="text-sm font-semibold text-gray-900 mb-2">
+                For Admins:
+              </p>
+              <p className="text-sm text-gray-700">
+                Create user accounts via the admin panel or seed script:
+              </p>
+              <code className="block mt-2 text-xs bg-gray-900 text-green-400 p-2 rounded">
+                npm run seed
+              </code>
+            </div>
+
+            <div className="bg-yellow-50 border border-yellow-200 rounded-md p-4">
+              <p className="text-sm font-semibold text-yellow-900 mb-2">
+                🎯 Demo Access
+              </p>
+              <p className="text-sm text-yellow-800 mb-2">
+                For demo purposes, use these test accounts:
+              </p>
+              <div className="text-xs space-y-1 text-yellow-800 font-mono">
+                <p>• student@cohort5.com / demo123</p>
+                <p>• instructor@cohort5.com / demo123</p>
+                <p>• admin@100x.com / demo123</p>
+              </div>
+            </div>
           </div>
 
-          <div>
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+          <div className="mt-6">
+            <Link
+              href="/login"
+              className="inline-flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
             >
-              {loading ? 'Creating account...' : 'Sign up'}
-            </button>
-          </div>
-
-          <div className="text-sm text-center">
-            <span className="text-gray-600">Already have an account? </span>
-            <Link href="/login" className="font-medium text-blue-600 hover:text-blue-500">
-              Sign in
+              Go to Login
             </Link>
           </div>
-        </form>
+        </div>
 
-        <div className="mt-6 text-xs text-gray-500 text-center">
-          <p>Note: New accounts need to be assigned to a cohort by an admin.</p>
+        <div className="mt-6 text-xs text-gray-500 text-center border-t pt-4">
+          <p className="font-semibold mb-2">Why Invite-Only?</p>
+          <ul className="text-left space-y-1 text-gray-600">
+            <li>• Prevents unauthorized access to cohort data</li>
+            <li>• Maintains Row-Level Security (RLS) integrity</li>
+            <li>• Ensures users are properly assigned to cohorts</li>
+            <li>• Protects lecture content and resources</li>
+          </ul>
         </div>
       </div>
     </div>

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase, supabaseAdmin, userHasRole } from '@/lib/db/client';
+import { supabase, getSupabaseAdmin, userHasRole } from '@/lib/db/client';
 
 export interface AuthenticatedUser {
   id: string;
@@ -34,6 +34,7 @@ export async function authenticate(
     }
 
     // Get user's cohorts and roles
+    const supabaseAdmin = getSupabaseAdmin();
     const { data: userCohorts, error: cohortsError } = await supabaseAdmin
       .from('user_cohorts')
       .select('cohort_id, role')

@@ -6,7 +6,15 @@ const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
 if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error('Missing Supabase environment variables');
+  console.error('❌ Missing Supabase environment variables!');
+  console.error('NEXT_PUBLIC_SUPABASE_URL:', supabaseUrl ? 'SET' : 'MISSING');
+  console.error('NEXT_PUBLIC_SUPABASE_ANON_KEY:', supabaseAnonKey ? 'SET' : 'MISSING');
+
+  if (typeof window !== 'undefined') {
+    // Browser environment - show user-friendly error
+    console.error('Please ensure .env.local is configured and restart the dev server');
+  }
+  throw new Error('Missing Supabase environment variables. Check console for details.');
 }
 
 // Client-side Supabase client (respects RLS)
@@ -14,16 +22,37 @@ export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey);
 
 // Server-side Supabase client with service role (bypasses RLS)
 // Use only in server components and API routes where admin access is needed
-export const supabaseAdmin = createClient<Database>(
-  supabaseUrl,
-  supabaseServiceKey,
-  {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false,
-    },
+// This is lazily initialized to avoid exposing service key in browser
+let _supabaseAdmin: ReturnType<typeof createClient<Database>> | null = null;
+
+export function getSupabaseAdmin() {
+  // Only create admin client on server-side
+  if (typeof window !== 'undefined') {
+    throw new Error('supabaseAdmin should only be used on the server side');
   }
-);
+
+  if (!_supabaseAdmin) {
+    if (!supabaseServiceKey) {
+      throw new Error('SUPABASE_SERVICE_ROLE_KEY is required for admin operations');
+    }
+
+    _supabaseAdmin = createClient<Database>(
+      supabaseUrl,
+      supabaseServiceKey,
+      {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false,
+        },
+      }
+    );
+  }
+
+  return _supabaseAdmin;
+}
+
+// For backward compatibility
+export const supabaseAdmin = typeof window === 'undefined' ? getSupabaseAdmin() : null as any;
 
 // Helper function to get user's cohort IDs
 export async function getUserCohorts(userId: string): Promise<string[]> {
