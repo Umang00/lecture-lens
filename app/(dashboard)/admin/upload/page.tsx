@@ -162,7 +162,7 @@ export default function AdminUploadPage() {
             setProgress(100);
             setSuccess(true);
             setTimeout(() => {
-              router.push(`/dashboard/lectures/${lectureId}`);
+              router.push(`/lectures/${lectureId}`);
             }, 2000);
           } else if (statusData.status === 'failed') {
             throw new Error('Processing failed');

@@ -79,7 +79,7 @@ export default function AdminResourcesPage() {
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold">Manage Resources</h1>
         <button
-          onClick={() => router.push('/dashboard/instructor/resources')}
+          onClick={() => router.push('/instructor/resources')}
           className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
         >
           Add New Resource
@@ -101,7 +101,7 @@ export default function AdminResourcesPage() {
         <div className="text-center py-12 bg-gray-50 rounded-lg">
           <p className="text-gray-600">No resources found</p>
           <button
-            onClick={() => router.push('/dashboard/instructor/resources')}
+            onClick={() => router.push('/instructor/resources')}
             className="mt-4 text-blue-600 hover:text-blue-700"
           >
             Add your first resource

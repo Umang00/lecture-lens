@@ -31,14 +31,14 @@ export default function DashboardPage() {
                   {userRole?.role === 'admin' && (
                     <>
                       <Link
-                        href="/dashboard/admin/upload"
+                        href="/admin/upload"
                         className="text-sm font-medium text-gray-700 hover:text-gray-900"
                         data-testid="upload-lecture-button"
                       >
                         Upload Lecture
                       </Link>
                       <Link
-                        href="/dashboard/admin/resources"
+                        href="/admin/resources"
                         className="text-sm font-medium text-gray-700 hover:text-gray-900"
                         data-testid="manage-resources-button"
                       >
@@ -49,7 +49,7 @@ export default function DashboardPage() {
                   
                   {userRole?.role === 'instructor' && (
                     <Link
-                      href="/dashboard/instructor/resources"
+                      href="/instructor/resources"
                       className="text-sm font-medium text-gray-700 hover:text-gray-900"
                       data-testid="add-resource-button"
                     >
