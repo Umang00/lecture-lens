@@ -27,12 +27,15 @@ export {
 } from './chunker';
 
 // Token counting utilities
-export { 
-  estimateTokenCount, 
-  isWithinTokenLimit, 
-  truncateToTokenLimit, 
-  countTokensInText 
+export {
+  estimateTokenCount,
+  isWithinTokenLimit,
+  truncateToTokenLimit,
+  countTokensInText
 } from './token-counter';
+
+// VTT processing pipeline
+export { processVTTFile } from './processor';
 
 // Types
 export type { VTTSegment, Chunk, ChunkingConfig, ParsedVTT } from './types';
