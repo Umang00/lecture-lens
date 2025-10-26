@@ -30,10 +30,10 @@ async function scrapeRss(url: string): Promise<ScrapedContent> {
       .map((item, index) => {
         const title = item.title || 'Untitled';
         const description =
-          item.contentEncoded ||
-          item.content ||
-          item.description ||
-          item.summary ||
+          (item as any)['content:encoded'] ||
+          (item as any).content ||
+          (item as any).description ||
+          (item as any).summary ||
           '';
         const link = item.link || '';
         const pubDate = item.pubDate || item.isoDate || '';

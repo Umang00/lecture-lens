@@ -467,6 +467,9 @@ Provide a clear, informative summary that helps users decide if they want to rea
   });
 
   const summary = response.choices[0].message.content;
+  if (!summary) {
+    throw new Error('No summary generated from API response');
+  }
   console.log(`✅ Generated resource summary (${summary.length} chars)`);
 
   return summary;

@@ -74,6 +74,15 @@ export function countTokensInText(text: string): number {
 }
 
 /**
+ * Counts tokens in text (main export for backwards compatibility)
+ * @param text Text to count tokens for
+ * @returns Token count
+ */
+export function countTokens(text: string): number {
+  return estimateTokenCount(text);
+}
+
+/**
  * Splits text into chunks that fit within token limits
  * @param text Text to split
  * @param maxTokensPerChunk Maximum tokens per chunk

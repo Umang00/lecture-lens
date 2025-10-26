@@ -108,7 +108,7 @@ export async function POST(req: NextRequest) {
     }
 
     // 6. Verify user has access to this specific cohort
-    const hasAccessToCohort = userRole.some(uc => uc.cohort_id === cohortId);
+    const hasAccessToCohort = userRole.some((uc: { cohort_id: string; role: string }) => uc.cohort_id === cohortId);
     if (!hasAccessToCohort) {
       return NextResponse.json(
         { error: 'Access denied to this cohort' },

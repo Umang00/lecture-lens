@@ -191,7 +191,7 @@ export async function processResource(params: {
     resource_id: resourceId,
     lecture_id: null,
     text: chunk.text,
-    embedding: embeddings[index],
+    embedding: `[${embeddings[index].join(',')}]`, // Convert to PostgreSQL vector format
     metadata: {
       resourceType: type,
       resourceTitle: scraped.title,
