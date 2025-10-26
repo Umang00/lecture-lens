@@ -1,0 +1,37 @@
+WEBVTT
+
+1
+00:00:00.000 --> 00:00:05.000
+[Music playing]
+
+2
+00:00:05.000 --> 00:00:10.000
+Welcome everyone to today's lecture
+
+3
+00:00:10.000 --> 00:00:15.000
+Today we will cover Docker containers
+
+4
+00:00:15.000 --> 00:00:20.000
+Let's start with the basics
+
+5
+00:00:20.000 --> 00:00:25.000
+Docker is a containerization platform
+
+6
+00:00:25.000 --> 00:00:30.000
+It allows you to package applications
+
+7
+00:00:30.000 --> 00:00:35.000
+Step 1 is to install Docker
+
+8
+00:00:35.000 --> 00:00:40.000
+Chapter 2 covers advanced topics
+
+9
+00:00:40.000 --> 00:00:45.000
+This concludes our introduction
